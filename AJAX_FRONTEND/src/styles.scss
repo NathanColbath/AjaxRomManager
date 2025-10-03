@@ -9,6 +9,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Ensure navbar links are clickable */
+.navbar .nav-link {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+.navbar .dropdown-toggle {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

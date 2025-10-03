@@ -1,0 +1,61 @@
+// Custom navbar styling
+.navbar-brand {
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.nav-link {
+  font-weight: 500;
+  transition: color 0.3s ease;
+  
+  &:hover {
+    color: #ffc107 !important;
+  }
+  
+  &.active {
+    color: #ffc107 !important;
+    font-weight: 600;
+  }
+}
+
+.dropdown-item {
+  transition: background-color 0.3s ease;
+  
+  &:hover {
+    background-color: #343a40;
+    color: #ffc107;
+  }
+  
+  &.active {
+    background-color: #495057;
+    color: #ffc107;
+  }
+}
+
+// Ensure navbar stays at top
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+// Mobile responsiveness
+@media (max-width: 991.98px) {
+  .navbar-nav {
+    margin-top: 1rem;
+  }
+  
+  .dropdown-menu {
+    background-color: #343a40;
+    border: 1px solid #495057;
+  }
+  
+  .dropdown-item {
+    color: #fff;
+    
+    &:hover {
+      background-color: #495057;
+    }
+  }
+}
