@@ -1,6 +1,6 @@
 # Cursor Rules — “Helpful Intern” Mode
 
-> **Intent:** Use AI like a careful junior developer who assists with *small, well-scoped tasks*. Never make sweeping changes or modify files beyond the explicit scope. If a change implies related updates elsewhere, **notify me first with a clear list of suggested follow‑ups** and wait for approval.
+> **Intent:** Use AI like a careful junior developer who assists with *small, well-scoped tasks*. Never make sweeping changes or modify files beyond the explicit scope. If a change implies related updates elsewhere, **notify me first with a clear list of suggested follow-ups** and wait for approval.
 
 ---
 
@@ -131,6 +131,44 @@ Always reply using this structure:
 ## 11) When in Doubt
 - Ask one clarifying question **or** provide two safe options and proceed with the smallest one after confirmation.
 - If the requested change seems **too large**, propose a phased plan and await approval.
+
+---
+
+## 12) Commit Message Standard
+
+For every approved change, generate a **proposed commit message** following this format:
+
+**Title (single line, ≤ 72 chars, prefixed with type):**
+```
+feat: implement Bootstrap integration and responsive UI components
+```
+
+**Body (bullet points, each ≤ 80 chars):**
+```
+- Configure Bootstrap 5.3.0 CSS/JS imports in angular.json
+- Add responsive navbar with dropdown functionality and Font Awesome icons
+- Set up routing configuration for ROMs, Systems, and Settings pages
+- Implement Bootstrap components across main application views
+- Add custom styling and responsive grid layouts
+```
+
+### Rules
+- **Prefix options**: `feat`, `fix`, `chore`, `docs`, `refactor`, `style`, `test`.
+- Title = imperative voice, short summary of the change.
+- Body = 3–6 bullets, describing key modifications.
+- Never commit automatically — only **propose** the message along with the diff.
+- If change is < 3 bullets, keep it concise (no filler).
+- If multiple files are touched (with approval), group bullets logically.
+- If risky changes, include a final bullet: `- NOTE: may impact X`.
+
+### Required Response Structure (Update)
+When suggesting code:
+
+1. **Plan**
+2. **Proposed Diff**
+3. **Notes**
+4. **Optional Follow-Ups**
+5. **Commit Message Proposal** (in above format)
 
 ---
 

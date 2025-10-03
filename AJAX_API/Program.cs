@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using AjaxRomManager.Api.Data;
+using AjaxRomManager.Api.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,7 +26,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add custom services
-//builder.Services.AddScoped<IRomService, RomService>();
+builder.Services.AddScoped<IMetadataService, MetadataService>();
 
 var app = builder.Build();
 
