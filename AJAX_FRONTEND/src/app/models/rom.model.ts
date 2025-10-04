@@ -21,6 +21,27 @@ export interface Platform {
   imageUrl?: string;
 }
 
+export interface GameSystem {
+  id: number;
+  name: string;
+  extension?: string;
+  emulatorPath?: string;
+  emulatorArguments?: string;
+  iconPath?: string;
+  isActive: boolean;
+  createdAt: Date;
+  romCount?: number;
+  description?: string;
+  imageUrl?: string;
+}
+
+export interface SystemFilter {
+  searchTerm: string;
+  sortBy: 'name' | 'romCount' | 'createdAt';
+  sortOrder: 'asc' | 'desc';
+  isActive?: boolean;
+}
+
 export interface RomFilter {
   searchTerm: string;
   sortBy: 'name' | 'fileSize' | 'releaseDate';

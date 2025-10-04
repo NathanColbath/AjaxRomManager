@@ -11,6 +11,7 @@ export class apiRoutes {
     public static readonly ROMS_METADATA = 'roms/metadata';
     public static readonly PLATFORMS = 'platforms';
     public static readonly PLATFORMS_METADATA = 'platforms/metadata';
+    public static readonly SYSTEMS = 'systems';
     public static readonly METADATA = 'metadata';
 }
 

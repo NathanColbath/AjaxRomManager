@@ -1,0 +1,253 @@
+// Systems Component Styles
+.systems-container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+// Header Section - Full width dark brown/gold gradient
+.header-section {
+  background: linear-gradient(135deg, #2c1810 0%, #8b4513 50%, #daa520 100%) !important;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.system-stats {
+  .badge {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+// System Cards are now in their own component
+
+// List View Styles
+.system-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.table {
+  .btn-group {
+    .btn {
+      border-radius: 6px;
+      margin-right: 2px;
+      
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+}
+
+// Filters Section
+.card {
+  border: none;
+  border-radius: 12px;
+  
+  .card-header {
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 12px 12px 0 0 !important;
+    
+    .card-title {
+      color: #495057;
+      font-weight: 600;
+    }
+  }
+}
+
+.form-control, .form-select {
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  transition: all 0.3s ease;
+  
+  &:focus {
+    border-color: #8b4513;
+    box-shadow: 0 0 0 0.2rem rgba(139, 69, 19, 0.25);
+  }
+}
+
+.input-group-text {
+  background-color: #f8f9fa;
+  border-color: #ced4da;
+  color: #6c757d;
+}
+
+// Loading and Error States
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+  color: #8b4513 !important;
+}
+
+.alert {
+  border: none;
+  border-radius: 12px;
+  
+  &.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+}
+
+// View Options
+.view-options {
+  .btn-group {
+    .btn {
+      border-radius: 6px;
+      
+      &.active {
+        background-color: #8b4513;
+        border-color: #8b4513;
+        color: white;
+      }
+    }
+  }
+}
+
+// Action Buttons
+.btn-group {
+  .btn {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// Badge Styles
+.badge {
+  font-weight: 500;
+  
+  &.bg-info {
+    background-color: #17a2b8 !important;
+  }
+  
+  &.bg-light {
+    background-color: #f8f9fa !important;
+    color: #495057 !important;
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .systems-container {
+    .container {
+      padding-left: 15px;
+      padding-right: 15px;
+    }
+  }
+  
+  // System card responsive styles are now in system-card component
+  
+  .table-responsive {
+    .table {
+      font-size: 0.875rem;
+      
+      .btn-group {
+        .btn {
+          padding: 0.25rem 0.5rem;
+          font-size: 0.75rem;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .header-section {
+    .container {
+      text-align: center;
+      
+      .col-md-4 {
+        margin-top: 1rem;
+      }
+    }
+  }
+  
+  .card-body {
+    .row.g-3 {
+      .col-md-6, .col-lg-4, .col-lg-3, .col-lg-2 {
+        margin-bottom: 1rem;
+      }
+    }
+  }
+  
+  .system-stats {
+    .badge {
+      display: block;
+      margin-bottom: 0.5rem;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+// Card animations are now in system-card component
+
+// Custom scrollbar for long lists
+.systems-container {
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+}
+
+// Empty state styling
+.text-center {
+  .fa-desktop {
+    opacity: 0.3;
+  }
+}
+
+// Status indicators
+.bg-success {
+  background-color: #28a745 !important;
+}
+
+.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+// Hover effects for interactive elements
+.btn-outline-primary:hover {
+  background-color: #8b4513;
+  border-color: #8b4513;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+// Table hover effects
+.table-hover tbody tr:hover {
+  background-color: rgba(139, 69, 19, 0.05);
+}
+
+// Card hover effects
+.card:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+}
