@@ -4,6 +4,9 @@ using AjaxRomManager.Api.Services;
 
 namespace AjaxRomManager.Api.Controllers
 {
+    /// <summary>
+    /// Controller for managing ROM metadata including descriptions, ratings, and additional information
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class MetadataController : ControllerBase
@@ -15,7 +18,10 @@ namespace AjaxRomManager.Api.Controllers
             _metadataService = metadataService;
         }
 
-        // GET: api/metadata
+        /// <summary>
+        /// Retrieves all ROM metadata from the collection
+        /// </summary>
+        /// <returns>List of all ROM metadata</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<RomMetadata>>> GetAllMetadata()
         {

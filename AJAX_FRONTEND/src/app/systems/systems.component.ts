@@ -64,12 +64,11 @@ export class SystemsComponent implements OnInit {
     let filtered = [...this.systems];
 
     // Apply search filter
-    if (this.filter.searchTerm.trim()) {
+    if (this.filter.searchTerm?.trim()) {
       const searchTerm = this.filter.searchTerm.toLowerCase();
       filtered = filtered.filter(system => 
         system.name.toLowerCase().includes(searchTerm) ||
-        system.extension?.toLowerCase().includes(searchTerm) ||
-        system.description?.toLowerCase().includes(searchTerm)
+        system.extension?.toLowerCase().includes(searchTerm)
       );
     }
 
@@ -87,11 +86,11 @@ export class SystemsComponent implements OnInit {
           comparison = a.name.localeCompare(b.name);
           break;
         case 'romCount':
-          comparison = (a.romCount || 0) - (b.romCount || 0);
+          comparison = (a.roms?.length || 0) - (b.roms?.length || 0);
           break;
         case 'createdAt':
-          const dateA = new Date(a.createdAt).getTime();
-          const dateB = new Date(b.createdAt).getTime();
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           comparison = dateA - dateB;
           break;
       }
@@ -180,7 +179,8 @@ export class SystemsComponent implements OnInit {
     alert('Add new system functionality would be implemented here.');
   }
 
-  formatDate(date: Date | string): string {
+  formatDate(date: Date | string | undefined): string {
+    if (!date) return 'Unknown';
     return new Date(date).toLocaleDateString();
   }
 
@@ -201,113 +201,7 @@ export class SystemsComponent implements OnInit {
     // Simulate API delay
     setTimeout(() => {
       // Sample game systems
-      this.systems = [
-        {
-          id: 1,
-          name: 'Nintendo Entertainment System',
-          extension: '.nes',
-          emulatorPath: 'C:\\emulators\\nestopia\\nestopia.exe',
-          emulatorArguments: '-fullscreen',
-          iconPath: '/icons/nes.png',
-          isActive: true,
-          createdAt: new Date('2024-01-15'),
-          romCount: 45,
-          description: '8-bit home video game console released by Nintendo',
-          imageUrl: 'https://via.placeholder.com/300x200/FF6B6B/FFFFFF?text=NES'
-        },
-        {
-          id: 2,
-          name: 'Super Nintendo Entertainment System',
-          extension: '.sfc',
-          emulatorPath: 'C:\\emulators\\snes9x\\snes9x.exe',
-          emulatorArguments: '-fullscreen -sound',
-          iconPath: '/icons/snes.png',
-          isActive: true,
-          createdAt: new Date('2024-01-16'),
-          romCount: 32,
-          description: '16-bit home video game console',
-          imageUrl: 'https://via.placeholder.com/300x200/4ECDC4/FFFFFF?text=SNES'
-        },
-        {
-          id: 3,
-          name: 'Sega Genesis',
-          extension: '.md',
-          emulatorPath: 'C:\\emulators\\genesis\\genesis.exe',
-          emulatorArguments: '-fullscreen',
-          iconPath: '/icons/genesis.png',
-          isActive: true,
-          createdAt: new Date('2024-01-17'),
-          romCount: 28,
-          description: '16-bit home video game console',
-          imageUrl: 'https://via.placeholder.com/300x200/45B7D1/FFFFFF?text=Genesis'
-        },
-        {
-          id: 4,
-          name: 'Nintendo 64',
-          extension: '.z64',
-          emulatorPath: 'C:\\emulators\\project64\\project64.exe',
-          emulatorArguments: '-fullscreen -sound',
-          iconPath: '/icons/n64.png',
-          isActive: true,
-          createdAt: new Date('2024-01-18'),
-          romCount: 18,
-          description: '64-bit home video game console',
-          imageUrl: 'https://via.placeholder.com/300x200/FFA07A/FFFFFF?text=N64'
-        },
-        {
-          id: 5,
-          name: 'PlayStation',
-          extension: '.bin',
-          emulatorPath: 'C:\\emulators\\epsxe\\epsxe.exe',
-          emulatorArguments: '-fullscreen',
-          iconPath: '/icons/psx.png',
-          isActive: false,
-          createdAt: new Date('2024-01-19'),
-          romCount: 12,
-          description: '32-bit home video game console',
-          imageUrl: 'https://via.placeholder.com/300x200/98D8C8/FFFFFF?text=PSX'
-        },
-        {
-          id: 6,
-          name: 'Game Boy',
-          extension: '.gb',
-          emulatorPath: 'C:\\emulators\\vba\\visualboyadvance.exe',
-          emulatorArguments: '-fullscreen',
-          iconPath: '/icons/gb.png',
-          isActive: true,
-          createdAt: new Date('2024-01-20'),
-          romCount: 67,
-          description: '8-bit handheld video game console',
-          imageUrl: 'https://via.placeholder.com/300x200/F7DC6F/FFFFFF?text=Game+Boy'
-        },
-        {
-          id: 7,
-          name: 'Game Boy Advance',
-          extension: '.gba',
-          emulatorPath: 'C:\\emulators\\vba\\visualboyadvance.exe',
-          emulatorArguments: '-fullscreen',
-          iconPath: '/icons/gba.png',
-          isActive: true,
-          createdAt: new Date('2024-01-21'),
-          romCount: 89,
-          description: '32-bit handheld video game console',
-          imageUrl: 'https://via.placeholder.com/300x200/BF80FF/FFFFFF?text=GBA'
-        },
-        {
-          id: 8,
-          name: 'Sega Dreamcast',
-          extension: '.cdi',
-          emulatorPath: 'C:\\emulators\\demul\\demul.exe',
-          emulatorArguments: '-fullscreen',
-          iconPath: '/icons/dreamcast.png',
-          isActive: false,
-          createdAt: new Date('2024-01-22'),
-          romCount: 8,
-          description: '128-bit home video game console',
-          imageUrl: 'https://via.placeholder.com/300x200/F8B500/FFFFFF?text=Dreamcast'
-        }
-      ];
-
+      this.systems = [];
       this.applyFilters();
       this.loading = false;
     }, 1000); // Simulate 1 second loading time

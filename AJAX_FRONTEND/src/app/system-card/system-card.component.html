@@ -2,8 +2,8 @@
   <!-- System Image -->
   <div class="system-image-container">
     <img 
-      *ngIf="system.imageUrl; else systemPlaceholder"
-      [src]="system.imageUrl" 
+      *ngIf="system.iconPath; else systemPlaceholder"
+      [src]="system.iconPath" 
       class="system-image" 
       [alt]="system.name">
     <ng-template #systemPlaceholder>
@@ -31,7 +31,7 @@
       </div>
       <div class="text-muted small text-center">
         <i class="fas fa-archive me-1"></i>
-        ROMs: {{system.romCount || 0}}
+        ROMs: {{system.roms?.length || 0}}
       </div>
       <div class="text-muted small text-center">
         <i class="fas fa-calendar me-1"></i>
@@ -39,8 +39,9 @@
       </div>
     </div>
 
-    <p *ngIf="system.description" class="card-text flex-grow-1 text-center">
-      {{system.description}}
+    <p *ngIf="system.emulatorPath" class="card-text flex-grow-1 text-center">
+      <i class="fas fa-play-circle me-1"></i>
+      Emulator configured
     </p>
   </div>
 </div>

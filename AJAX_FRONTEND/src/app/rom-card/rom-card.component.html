@@ -2,9 +2,9 @@
     <!-- ROM Image/Icon -->
     <div class="rom-image-container">
       <img 
-        *ngIf="rom.imageUrl; else defaultImage"
-        [src]="rom.imageUrl" 
-        [alt]="rom.name"
+        *ngIf="rom.metadata?.coverImagePath; else defaultImage"
+        [src]="rom.metadata?.coverImagePath" 
+        [alt]="rom.title"
         class="card-img-top rom-image">
       <ng-template #defaultImage>
         <div class="rom-placeholder">
@@ -14,7 +14,7 @@
       
       <!-- Platform Badge -->
       <div class="platform-badge">
-        <span class="badge bg-secondary">{{rom.platformName || 'Unknown'}}</span>
+        <span class="badge bg-secondary">{{rom.platform?.name || 'Unknown'}}</span>
       </div>
 
       <!-- Favorite Button -->
@@ -30,8 +30,8 @@
 
     <!-- Card Body -->
     <div class="card-body d-flex flex-column">
-      <h6 class="card-title text-truncate" [title]="rom.name">
-        {{rom.name}}
+      <h6 class="card-title text-truncate" [title]="rom.title">
+        {{rom.title}}
       </h6>
       
       <div class="rom-meta mt-auto">
@@ -42,7 +42,7 @@
         
         <small class="text-muted d-block mb-2">
           <i class="fas fa-calendar me-1"></i>
-          {{formatDate(rom.releaseDate)}}
+          {{formatDate(rom.metadata?.releaseDate)}}
         </small>
 
         <small class="text-muted d-block" *ngIf="rom.playCount && rom.playCount > 0">

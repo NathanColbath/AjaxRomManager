@@ -247,13 +247,16 @@
                       <td>
                         <div class="d-flex align-items-center">
                           <img 
-                            *ngIf="system.imageUrl" 
-                            [src]="system.imageUrl" 
+                            *ngIf="system.iconPath" 
+                            [src]="system.iconPath" 
                             class="system-thumb me-3" 
                             [alt]="system.name">
                           <div>
                             <div class="fw-bold">{{system.name}}</div>
-                            <small class="text-muted">{{system.description}}</small>
+                            <small class="text-muted" *ngIf="system.emulatorPath">
+                              <i class="fas fa-play-circle me-1"></i>
+                              Emulator configured
+                            </small>
                           </div>
                         </div>
                       </td>
@@ -264,7 +267,7 @@
                       </td>
                       <td>
                         <span class="badge bg-info">
-                          {{system.romCount || 0}}
+                          {{system.roms?.length || 0}}
                         </span>
                       </td>
                       <td>

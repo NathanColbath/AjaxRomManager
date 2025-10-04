@@ -12,7 +12,8 @@ import { GameSystem } from '../models/rom.model';
 export class SystemCardComponent {
   @Input() system!: GameSystem;
 
-  formatDate(date: Date | string): string {
+  formatDate(date: Date | string | undefined): string {
+    if (!date) return 'Unknown';
     return new Date(date).toLocaleDateString();
   }
 }

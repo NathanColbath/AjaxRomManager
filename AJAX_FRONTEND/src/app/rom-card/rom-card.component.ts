@@ -33,19 +33,19 @@ export class RomCardComponent {
 
   onPlay(): void {
     if (!this.rom) return;
-    console.log('Playing ROM:', this.rom.name);
+    console.log('Playing ROM:', this.rom.title);
     // TODO: Implement play functionality
   }
 
   onDetails(): void {
     if (!this.rom) return;
-    console.log('Showing details for ROM:', this.rom.name);
+    console.log('Showing details for ROM:', this.rom.title);
     // TODO: Implement details functionality
   }
 
   onDelete(): void {
     if (!this.rom) return;
-    console.log('Deleting ROM:', this.rom.name);
+    console.log('Deleting ROM:', this.rom.title);
     // TODO: Implement delete functionality
   }
 }
