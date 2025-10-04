@@ -4,6 +4,63 @@
   background-color: #f8f9fa;
 }
 
+// Platform Cards
+.platform-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: var(--bs-primary);
+  }
+  
+  &:active {
+    transform: translateY(-2px);
+  }
+}
+
+.platform-logo {
+  img {
+    transition: transform 0.3s ease;
+  }
+}
+
+.platform-card:hover .platform-logo img {
+  transform: scale(1.1);
+}
+
+.platform-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  width: 80px;
+  margin: 0 auto;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.extensions-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+}
+
+.rom-count {
+  .badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+.platform-status {
+  margin-bottom: 1rem;
+}
+
 // Header Section - Full width dark brown/gold gradient
 .header-section {
   background: linear-gradient(135deg, #2c1810 0%, #8b4513 50%, #daa520 100%) !important;

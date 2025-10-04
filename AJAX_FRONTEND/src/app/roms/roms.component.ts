@@ -1,32 +1,36 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule, Router } from '@angular/router';
 import { ApiService, apiRoutes } from '../services/api.service';
-import { Rom, Platform, RomFilter } from '../models/rom.model';
-import { RomCardComponent } from '../rom-card/rom-card.component';
+import { Rom, Platform } from '../models/rom.model';
 import { mockPlatforms, mockRoms } from './roms-mockdata';
 
+interface PlatformWithRomCount extends Platform {
+  romCount: number;
+}
 
 @Component({
   selector: 'app-roms',
   standalone: true,
-  imports: [CommonModule, FormsModule, RomCardComponent],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './roms.component.html',
   styleUrl: './roms.component.scss'
 })
 export class RomsComponent implements OnInit {
-  roms: Rom[] = [];
-  filteredRoms: Rom[] = [];
   platforms: Platform[] = [];
-  filter: RomFilter = {
-    searchTerm: '',
-    sortBy: 'title',
-    sortOrder: 'asc'
-  };
+  filteredPlatforms: PlatformWithRomCount[] = [];
+  roms: Rom[] = [];
+  
+  // Search and filter properties
+  searchTerm: string = '';
+  statusFilter: string = '';
+  sortBy: string = 'name';
+  
   loading = false;
   error: string | null = null;
 
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService, private router: Router) {}
 
   ngOnInit(): void {
     // ========================================
@@ -37,106 +41,94 @@ export class RomsComponent implements OnInit {
     this.loadTestData();
     
     // FOR REAL API (when backend is ready):
-    // this.loadRoms();
     // this.loadPlatforms();
+    // this.loadRoms();
   }
 
-  loadRoms(): void {
+  loadPlatforms(): void {
     this.loading = true;
     this.error = null;
     
-    this.apiService.get<Rom[]>(apiRoutes.ROMS).subscribe({
-      next: (roms) => {
-        this.roms = roms;
+    this.apiService.get<Platform[]>(apiRoutes.PLATFORMS).subscribe({
+      next: (platforms) => {
+        this.platforms = platforms;
         this.applyFilters();
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading ROMs:', error);
-        this.error = 'Failed to load ROMs';
+        console.error('Error loading platforms:', error);
+        this.error = 'Failed to load platforms';
         this.loading = false;
       }
     });
   }
 
-  loadPlatforms(): void {
-    this.apiService.get<Platform[]>(apiRoutes.PLATFORMS).subscribe({
-      next: (platforms) => {
-        this.platforms = platforms;
+  loadRoms(): void {
+    this.apiService.get<Rom[]>(apiRoutes.ROMS).subscribe({
+      next: (roms) => {
+        this.roms = roms;
+        this.applyFilters();
       },
       error: (error) => {
-        console.error('Error loading platforms:', error);
+        console.error('Error loading ROMs:', error);
       }
     });
   }
 
   applyFilters(): void {
-    let filtered = [...this.roms];
+    let filtered = [...this.platforms];
 
     // Apply search filter
-    if (this.filter.searchTerm?.trim()) {
-      const searchTerm = this.filter.searchTerm.toLowerCase();
-      filtered = filtered.filter(rom => 
-        rom.title.toLowerCase().includes(searchTerm) ||
-        (rom.fileName && rom.fileName.toLowerCase().includes(searchTerm))
+    if (this.searchTerm.trim()) {
+      const searchLower = this.searchTerm.toLowerCase();
+      filtered = filtered.filter(platform => 
+        platform.name.toLowerCase().includes(searchLower) ||
+        (platform.extension && platform.extension.toLowerCase().includes(searchLower))
       );
     }
 
-    // Apply platform filter
-    if (this.filter.platformId) {
-      filtered = filtered.filter(rom => rom.platformId === this.filter.platformId);
+    // Apply status filter
+    if (this.statusFilter) {
+      filtered = filtered.filter(platform => 
+        this.statusFilter === 'active' ? platform.isActive : !platform.isActive
+      );
     }
 
     // Apply sorting
     filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (this.filter.sortBy) {
-        case 'title':
-          comparison = a.title.localeCompare(b.title);
-          break;
-        case 'fileSize':
-          comparison = (a.fileSize || 0) - (b.fileSize || 0);
-          break;
-        case 'releaseDate':
-          const dateA = a.metadata?.releaseDate ? new Date(a.metadata.releaseDate).getTime() : 0;
-          const dateB = b.metadata?.releaseDate ? new Date(b.metadata.releaseDate).getTime() : 0;
-          comparison = dateA - dateB;
-          break;
+      switch (this.sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'romCount':
+          return this.getPlatformRomCount(b.id || 0) - this.getPlatformRomCount(a.id || 0);
+        case 'created':
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        default:
+          return 0;
       }
-      
-      return this.filter.sortOrder === 'desc' ? -comparison : comparison;
     });
 
-    this.filteredRoms = filtered;
+    // Add ROM count to each platform
+    this.filteredPlatforms = filtered.map(platform => ({
+      ...platform,
+      romCount: this.getPlatformRomCount(platform.id || 0)
+    }));
   }
 
-  onSearchChange(): void {
-    this.applyFilters();
+  getPlatformRomCount(platformId: number): number {
+    return this.roms.filter(rom => rom.platformId === platformId).length;
   }
 
-  onSortChange(): void {
-    this.applyFilters();
+  getTotalRomCount(): number {
+    return this.roms.length;
   }
 
-  onPlatformFilterChange(): void {
-    this.applyFilters();
-  }
-
-  clearFilters(): void {
-    this.filter = {
-      searchTerm: '',
-      sortBy: 'name',
-      sortOrder: 'asc'
-    };
-    this.applyFilters();
-  }
-
-  
-
-  formatDate(date: Date | string | undefined): string {
-    if (!date) return 'Unknown';
-    return new Date(date).toLocaleDateString();
+  viewPlatformRoms(platform: Platform): void {
+    console.log('Platform clicked:', platform);
+    // Navigate to platform-specific ROM list
+    if (platform.id) {
+      this.router.navigate(['/roms/platform', platform.id]);
+    }
   }
 
   // ========================================
@@ -150,7 +142,6 @@ export class RomsComponent implements OnInit {
       // Use clean mock data
       this.platforms = mockPlatforms;
       this.roms = mockRoms;
-
 
       this.applyFilters();
       this.loading = false;
