@@ -1,1 +1,82 @@
-<p>rom-card works!</p>
+<div class="card rom-card h-100 shadow-sm" *ngIf="rom">
+    <!-- ROM Image/Icon -->
+    <div class="rom-image-container">
+      <img 
+        *ngIf="rom.imageUrl; else defaultImage"
+        [src]="rom.imageUrl" 
+        [alt]="rom.name"
+        class="card-img-top rom-image">
+      <ng-template #defaultImage>
+        <div class="rom-placeholder">
+          <i class="fas fa-gamepad fa-3x"></i>
+        </div>
+      </ng-template>
+      
+      <!-- Platform Badge -->
+      <div class="platform-badge">
+        <span class="badge bg-secondary">{{rom.platformName || 'Unknown'}}</span>
+      </div>
+
+      <!-- Favorite Button -->
+      <button 
+        type="button" 
+        class="btn btn-sm favorite-btn"
+        [class.btn-warning]="rom.isFavorite"
+        [class.btn-outline-warning]="!rom.isFavorite"
+        (click)="onFavoriteToggle()">
+        <i class="fas fa-heart"></i>
+      </button>
+    </div>
+
+    <!-- Card Body -->
+    <div class="card-body d-flex flex-column">
+      <h6 class="card-title text-truncate" [title]="rom.name">
+        {{rom.name}}
+      </h6>
+      
+      <div class="rom-meta mt-auto">
+        <small class="text-muted d-block mb-1">
+          <i class="fas fa-hdd me-1"></i>
+          {{formatFileSize(rom.fileSize)}}
+        </small>
+        
+        <small class="text-muted d-block mb-2">
+          <i class="fas fa-calendar me-1"></i>
+          {{formatDate(rom.releaseDate)}}
+        </small>
+
+        <small class="text-muted d-block" *ngIf="rom.playCount && rom.playCount > 0">
+          <i class="fas fa-play me-1"></i>
+          Played {{rom.playCount}} times
+        </small>
+      </div>
+    </div>
+
+    <!-- Card Footer -->
+    <div class="card-footer bg-transparent border-0 pt-0">
+      <div class="btn-group w-100" role="group">
+        <button type="button" class="btn btn-primary btn-sm" (click)="onPlay()">
+          <i class="fas fa-play me-1"></i>
+          Play
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="onDetails()">
+          <i class="fas fa-info-circle me-1"></i>
+          Details
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" (click)="onDelete()">
+          <i class="fas fa-trash me-1"></i>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fallback when no ROM data -->
+  <div class="card rom-card h-100 shadow-sm" *ngIf="!rom">
+    <div class="card-body d-flex align-items-center justify-content-center">
+      <div class="text-center text-muted">
+        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+        <p class="mb-0">No ROM data available</p>
+      </div>
+    </div>
+  </div>
