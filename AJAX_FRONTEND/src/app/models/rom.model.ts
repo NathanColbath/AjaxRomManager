@@ -167,6 +167,187 @@ export class ScanJob {
 }
 
 // ========================================
+// Scan-Related Models (mirrors C# backend models)
+// ========================================
+
+// ScanOptions Model (mirrors C# ScanOptions class)
+export class ScanOptions {
+  recursive: boolean = true;
+  autoDetectPlatform: boolean = true;
+  createMetadata: boolean = true;
+  skipDuplicates: boolean = true;
+  maxFileSizeBytes: number = 1073741824; // 1GB default
+  filePatterns: string[] = [];
+  excludePatterns: string[] = [];
+  hashAlgorithm: string = 'MD5';
+  includeSubdirectories: boolean = true;
+  platformId?: number;
+  scanType: string = 'Full'; // Full, Incremental, Custom
+
+  constructor(data?: Partial<ScanOptions>) {
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
+}
+
+// ScanProgress Model (mirrors C# ScanProgress class)
+export class ScanProgress {
+  scanJobId: number = 0;
+  status: string = '';
+  progress: number = 0;
+  filesFound: number = 0;
+  filesProcessed: number = 0;
+  filesAdded: number = 0;
+  filesSkipped: number = 0;
+  errors: number = 0;
+  currentFile?: string;
+  startedAt?: Date;
+  estimatedCompletion?: Date;
+  errorMessages: string[] = [];
+  elapsedTime?: string;
+  remainingTime?: string;
+
+  constructor(data?: Partial<ScanProgress>) {
+    if (data) {
+      Object.assign(this, data);
+      // Convert date strings to Date objects if needed
+      if (data.startedAt && typeof data.startedAt === 'string') {
+        this.startedAt = new Date(data.startedAt);
+      }
+      if (data.estimatedCompletion && typeof data.estimatedCompletion === 'string') {
+        this.estimatedCompletion = new Date(data.estimatedCompletion);
+      }
+    }
+  }
+}
+
+// ScanConfiguration Model (mirrors C# ScanConfiguration class)
+export class ScanConfiguration {
+  defaultDirectory: string = '';
+  recursive: boolean = true;
+  autoDetectPlatform: boolean = true;
+  createMetadata: boolean = true;
+  skipDuplicates: boolean = true;
+  maxFileSizeMB: number = 1024; // 1GB default
+  hashAlgorithm: string = 'MD5';
+  includeSubdirectories: boolean = true;
+  defaultFilePatterns: string[] = [];
+  defaultExcludePatterns: string[] = [];
+  progressUpdateIntervalSeconds: number = 5;
+  enableBackgroundScanning: boolean = true;
+  maxConcurrentScans: number = 3;
+
+  constructor(data?: Partial<ScanConfiguration>) {
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
+}
+
+// Request/Response DTOs
+export class StartScanRequest {
+  directoryPath: string = '';
+  platformId?: number;
+  options?: ScanOptions;
+  name?: string;
+
+  constructor(data?: Partial<StartScanRequest>) {
+    if (data) {
+      Object.assign(this, data);
+      if (data.options) {
+        this.options = new ScanOptions(data.options);
+      }
+    }
+  }
+}
+
+export class RecurringScanRequest {
+  directoryPath: string = '';
+  cronExpression: string = '';
+  platformId?: number;
+  options?: ScanOptions;
+  name?: string;
+
+  constructor(data?: Partial<RecurringScanRequest>) {
+    if (data) {
+      Object.assign(this, data);
+      if (data.options) {
+        this.options = new ScanOptions(data.options);
+      }
+    }
+  }
+}
+
+export class SetDirectoryRequest {
+  directoryPath: string = '';
+
+  constructor(data?: Partial<SetDirectoryRequest>) {
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
+}
+
+export class ScanHistoryRequest {
+  platformId?: number;
+  page: number = 1;
+  pageSize: number = 20;
+  status?: string;
+  fromDate?: Date;
+  toDate?: Date;
+
+  constructor(data?: Partial<ScanHistoryRequest>) {
+    if (data) {
+      Object.assign(this, data);
+      // Convert date strings to Date objects if needed
+      if (data.fromDate && typeof data.fromDate === 'string') {
+        this.fromDate = new Date(data.fromDate);
+      }
+      if (data.toDate && typeof data.toDate === 'string') {
+        this.toDate = new Date(data.toDate);
+      }
+    }
+  }
+}
+
+export class PagedResult<T> {
+  items: T[] = [];
+  totalCount: number = 0;
+  page: number = 1;
+  pageSize: number = 20;
+
+  get totalPages(): number {
+    return Math.ceil(this.totalCount / this.pageSize);
+  }
+
+  get hasNextPage(): boolean {
+    return this.page < this.totalPages;
+  }
+
+  get hasPreviousPage(): boolean {
+    return this.page > 1;
+  }
+
+  constructor(data?: Partial<PagedResult<T>>) {
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
+}
+
+// SignalR Message Types
+export interface ScanProgressMessage {
+  scanJobId: number;
+  status: string;
+  progress?: ScanProgress;
+  message?: string;
+  timestamp: string;
+  scanJob?: ScanJob;
+  errorMessage?: string;
+}
+
+// ========================================
 // Filter Interfaces for Frontend Components
 // ========================================
 export interface RomFilter {

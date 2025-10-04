@@ -13,7 +13,7 @@ namespace AJAX_API.Services
     {
         Task<IEnumerable<Rom>> GetRoms();
         Task<Rom?> GetRomById(int id);
-        Task<Rom> CreateRom(Rom rom);
+        Task<Rom?> CreateRom(Rom rom);
         Task<Rom?> UpdateRom(int id, Rom rom);
         Task<Rom?> DeleteRom(int id);
 

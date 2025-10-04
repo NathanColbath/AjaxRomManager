@@ -13,6 +13,17 @@ export class apiRoutes {
     public static readonly PLATFORMS_METADATA = 'platforms/metadata';
     public static readonly SYSTEMS = 'systems';
     public static readonly METADATA = 'metadata';
+    
+    // Scanning endpoints
+    public static readonly SCANNING = 'scanning';
+    public static readonly SCANNING_START = 'scanning/start';
+    public static readonly SCANNING_START_RECURRING = 'scanning/start-recurring';
+    public static readonly SCANNING_STOP = 'scanning';
+    public static readonly SCANNING_ACTIVE = 'scanning/active';
+    public static readonly SCANNING_HISTORY = 'scanning/history';
+    public static readonly SCANNING_PROGRESS = 'scanning';
+    public static readonly SCANNING_SETTINGS = 'scanning/settings';
+    public static readonly SCANNING_DIRECTORY = 'scanning/directory';
 }
 
 
@@ -20,9 +31,8 @@ export class apiRoutes {
     providedIn: 'root'
 })
 export class ApiService {
-    private apiUrl = 'http://localhost:5000/api';
+    private apiUrl = 'http://localhost:5005/api';
     constructor(private http: HttpClient) {}
-
 
     public post<T>(url: string, data: any): Observable<T> {
         return this.http.post<T>(`${this.apiUrl}/${url}`, data);
@@ -40,4 +50,9 @@ export class ApiService {
         return this.http.delete<T>(`${this.apiUrl}/${url}`);
     }
 
-}
+    // Convenience method for GET requests with query parameters
+    public getWithParams<T>(url: string, params: any): Observable<T> {
+        return this.http.get<T>(`${this.apiUrl}/${url}`, { params });
+    }
+
+}1

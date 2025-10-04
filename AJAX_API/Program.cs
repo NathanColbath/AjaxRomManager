@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using AjaxRomManager.Api.Data;
 using AjaxRomManager.Api.Services;
+using AJAX_API.Services;
+using AJAX_API.Hubs;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,8 +48,19 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Add SignalR
+builder.Services.AddSignalR();
+
 // Add custom services
 builder.Services.AddScoped<IMetadataService, MetadataService>();
+builder.Services.AddScoped<IRomsManagmentService, RomsManagmentService>();
+builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+builder.Services.AddScoped<IPlatformDetectionService, PlatformDetectionService>();
+builder.Services.AddScoped<IScanningNotificationService, ScanningNotificationService>();
+builder.Services.AddScoped<IFileScanningService, FileScanningService>();
+
+// Add background service
+builder.Services.AddHostedService<FileScanningBackgroundService>();
 
 var app = builder.Build();
 
@@ -66,6 +79,9 @@ app.UseSwaggerUI(c =>
 app.UseCors("AllowAngularApp");
 app.UseAuthorization();
 app.MapControllers();
+
+// Map SignalR hubs
+app.MapHub<ScanningHub>("/scanningHub");
 
 // Configure the application to run on port 5005
 app.Urls.Add("http://localhost:5005");
