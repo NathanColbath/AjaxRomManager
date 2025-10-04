@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 
 interface Platform {
   id: number;
@@ -41,7 +41,7 @@ export class SystemsManagmentComponent implements OnInit {
   itemsPerPage: number = 12;
   totalPages: number = 1;
 
-  constructor() { }
+  constructor(private router: Router) { }
 
   ngOnInit(): void {
     this.loadPlatforms();
@@ -184,8 +184,7 @@ export class SystemsManagmentComponent implements OnInit {
   }
 
   editPlatform(platform: Platform): void {
-    // TODO: Navigate to edit platform page
-    console.log('Edit platform:', platform);
+    this.router.navigate(['/systems-edit', platform.id]);
   }
 
   togglePlatformStatus(platform: Platform): void {

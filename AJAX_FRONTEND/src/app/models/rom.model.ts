@@ -13,8 +13,6 @@ export class Rom {
   platformId: number = 0;
   platform?: Platform;
   dateAdded: Date = new Date();
-  lastPlayed?: Date;
-  playCount: number = 0;
   isFavorite: boolean = false;
   isArchived: boolean = false;
   metadata?: RomMetadata;
@@ -25,9 +23,6 @@ export class Rom {
       // Convert date strings to Date objects if needed
       if (data.dateAdded && typeof data.dateAdded === 'string') {
         this.dateAdded = new Date(data.dateAdded);
-      }
-      if (data.lastPlayed && typeof data.lastPlayed === 'string') {
-        this.lastPlayed = new Date(data.lastPlayed);
       }
       if (data.platform && typeof data.platform === 'object') {
         this.platform = new Platform(data.platform);
@@ -45,7 +40,9 @@ export class Rom {
 export class Platform {
   id?: number;
   name: string = '';
-  extension?: string;
+  description?: string;
+  extension?: string; // Keep for backward compatibility
+  extensions?: string; // JSON serialized array from backend
   emulatorPath?: string;
   emulatorArguments?: string;
   iconPath?: string;
@@ -69,6 +66,24 @@ export class Platform {
         this.scanJobs = data.scanJobs.map(job => new ScanJob(job));
       }
     }
+  }
+
+  // Helper property to get extensions as array
+  get extensionsList(): string[] {
+    if (!this.extensions) {
+      // Fallback to single extension for backward compatibility
+      return this.extension ? [this.extension] : [];
+    }
+    try {
+      return JSON.parse(this.extensions) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  // Helper property to set extensions from array
+  set extensionsList(value: string[]) {
+    this.extensions = value && value.length > 0 ? JSON.stringify(value) : undefined;
   }
 }
 

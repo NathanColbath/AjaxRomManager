@@ -31,9 +31,9 @@ export class RomCardComponent {
     }
   }
 
-  onPlay(): void {
+  onView(): void {
     if (!this.rom) return;
-    console.log('Playing ROM:', this.rom.title);
+    console.log('Viewing ROM:', this.rom.title);
     // TODO: Implement play functionality
   }
 

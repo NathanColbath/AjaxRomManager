@@ -89,7 +89,6 @@ export const mockRoms: Rom[] = [
     platformId: 1,
     platform: mockPlatforms[0],
     dateAdded: new Date('2023-01-15'),
-    playCount: 15,
     isFavorite: true,
     metadata: new RomMetadata({
       id: 1,
@@ -113,7 +112,6 @@ export const mockRoms: Rom[] = [
     platformId: 2,
     platform: mockPlatforms[1],
     dateAdded: new Date('2023-01-16'),
-    playCount: 8,
     isFavorite: true,
     metadata: new RomMetadata({
       id: 2,
@@ -137,7 +135,6 @@ export const mockRoms: Rom[] = [
     platformId: 3,
     platform: mockPlatforms[2],
     dateAdded: new Date('2023-01-17'),
-    playCount: 12,
     isFavorite: false,
     metadata: new RomMetadata({
       id: 3,
@@ -161,7 +158,6 @@ export const mockRoms: Rom[] = [
     platformId: 4,
     platform: mockPlatforms[3],
     dateAdded: new Date('2023-01-18'),
-    playCount: 25,
     isFavorite: true,
     metadata: new RomMetadata({
       id: 4,
@@ -185,7 +181,6 @@ export const mockRoms: Rom[] = [
     platformId: 5,
     platform: mockPlatforms[4],
     dateAdded: new Date('2023-01-19'),
-    playCount: 35,
     isFavorite: true,
     metadata: new RomMetadata({
       id: 5,

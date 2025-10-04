@@ -120,9 +120,6 @@ export class PlatformRomsComponent implements OnInit {
         case 'dateAdded':
           comparison = a.dateAdded.getTime() - b.dateAdded.getTime();
           break;
-        case 'playCount':
-          comparison = a.playCount - b.playCount;
-          break;
       }
       
       return this.sortOrder === 'desc' ? -comparison : comparison;

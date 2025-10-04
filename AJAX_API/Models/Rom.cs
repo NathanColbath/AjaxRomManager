@@ -28,10 +28,6 @@ namespace AjaxRomManager.Api.Models
         
         public DateTime DateAdded { get; set; } = DateTime.UtcNow;
         
-        public DateTime? LastPlayed { get; set; }
-        
-        public int PlayCount { get; set; } = 0;
-        
         public bool IsFavorite { get; set; } = false;
         
         public bool IsArchived { get; set; } = false;
@@ -48,8 +44,14 @@ namespace AjaxRomManager.Api.Models
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
         
+        [MaxLength(500)]
+        public string? Description { get; set; }
+        
         [MaxLength(10)]
-        public string? Extension { get; set; }
+        public string? Extension { get; set; } // Keep for backward compatibility
+        
+        [MaxLength(2000)] // JSON array of extensions
+        public string? Extensions { get; set; } // JSON serialized array
         
         [MaxLength(500)]
         public string? EmulatorPath { get; set; }
@@ -67,5 +69,33 @@ namespace AjaxRomManager.Api.Models
         // Navigation properties
         public List<Rom> Roms { get; set; } = new();
         public List<ScanJob> ScanJobs { get; set; } = new();
+        
+        // Helper properties for easier access
+        [NotMapped]
+        public List<string> ExtensionList
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(Extensions))
+                {
+                    // Fallback to single extension for backward compatibility
+                    return string.IsNullOrEmpty(Extension) ? new List<string>() : new List<string> { Extension };
+                }
+                try
+                {
+                    return System.Text.Json.JsonSerializer.Deserialize<List<string>>(Extensions) ?? new List<string>();
+                }
+                catch
+                {
+                    return new List<string>();
+                }
+            }
+            set
+            {
+                Extensions = value != null && value.Count > 0 
+                    ? System.Text.Json.JsonSerializer.Serialize(value) 
+                    : null;
+            }
+        }
     }
 }

@@ -112,7 +112,7 @@ export class RomsComponent implements OnInit {
     this.filteredPlatforms = filtered.map(platform => ({
       ...platform,
       romCount: this.getPlatformRomCount(platform.id || 0)
-    }));
+    } as PlatformWithRomCount));
   }
 
   getPlatformRomCount(platformId: number): number {

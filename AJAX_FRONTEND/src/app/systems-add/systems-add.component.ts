@@ -32,6 +32,7 @@ export class SystemsAddComponent implements OnInit {
 
   logoPreview: string | null = null;
   logoFile: File | null = null;
+  isFormValid: boolean = false;
 
   constructor() { }
 
@@ -66,18 +67,27 @@ export class SystemsAddComponent implements OnInit {
 
   addExtension(): void {
     this.platform.extensions.push('');
+    this.onFormChange();
   }
 
   removeExtension(index: number): void {
     if (this.platform.extensions.length > 1) {
       this.platform.extensions.splice(index, 1);
+      this.onFormChange();
     }
   }
 
+  onFormChange(): void {
+    // Debounce validation to prevent input field deselection
+    setTimeout(() => {
+      this.validateForm();
+    }, 0);
+  }
 
-  isFormValid(): boolean {
-    return this.platform.name.trim() !== '' && 
-           this.platform.extensions.some(ext => ext.trim() !== '');
+  validateForm(): void {
+    // Simple validation without causing re-renders
+    this.isFormValid = this.platform.name.trim() !== '' && 
+                      this.platform.extensions.some(ext => ext.trim() !== '');
   }
 
   resetForm(): void {
@@ -90,10 +100,11 @@ export class SystemsAddComponent implements OnInit {
       extensions: ['']
     };
     this.clearLogo();
+    this.onFormChange();
   }
 
   savePlatform(): void {
-    if (!this.isFormValid()) {
+    if (!this.isFormValid) {
       return;
     }
 
@@ -111,5 +122,10 @@ export class SystemsAddComponent implements OnInit {
     // TODO: Handle logo upload
     // TODO: Show success/error messages
     // TODO: Navigate back to platform management
+  }
+
+  // TrackBy function to prevent unnecessary re-rendering
+  trackByExtension(index: number, extension: string): number {
+    return index;
   }
 }
