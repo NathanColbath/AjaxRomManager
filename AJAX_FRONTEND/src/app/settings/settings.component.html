@@ -1,1 +1,314 @@
-<p>settings works!</p>
+<div class="container-fluid mt-4 px-4">
+  <div class="row">
+    <div class="col-12">
+      <h2 class="mb-4">
+        <i class="fas fa-cog me-2"></i>
+        Settings
+      </h2>
+    </div>
+  </div>
+
+  <!-- System Settings Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-server me-2"></i>
+            System Settings
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="dbConnection" class="form-label">Database Connection</label>
+                <input type="text" class="form-control" id="dbConnection" 
+                       [(ngModel)]="systemSettings.dbConnection" placeholder="Connection string">
+              </div>
+              <div class="mb-3">
+                <label for="romStoragePath" class="form-label">ROM Storage Path</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="romStoragePath" 
+                         [(ngModel)]="systemSettings.romStoragePath" placeholder="Default ROM storage location">
+                  <button class="btn btn-outline-secondary" type="button" (click)="onFolderSelect('romStoragePath')">
+                    <i class="fas fa-folder-open"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="logLevel" class="form-label">Log Level</label>
+                <select class="form-select" id="logLevel" [(ngModel)]="systemSettings.logLevel">
+                  <option value="Information">Information</option>
+                  <option value="Warning">Warning</option>
+                  <option value="Error">Error</option>
+                  <option value="Debug">Debug</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="maxFileSize" class="form-label">Max File Size (MB)</label>
+                <input type="number" class="form-control" id="maxFileSize" 
+                       [(ngModel)]="systemSettings.maxFileSize" placeholder="1000">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- User Preferences Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-user me-2"></i>
+            User Preferences
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="theme" class="form-label">Theme</label>
+                <select class="form-select" id="theme" [(ngModel)]="userPreferences.theme">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="auto">Auto</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="itemsPerPage" class="form-label">Items Per Page</label>
+                <select class="form-select" id="itemsPerPage" [(ngModel)]="userPreferences.itemsPerPage">
+                  <option value="12">12</option>
+                  <option value="24">24</option>
+                  <option value="48">48</option>
+                  <option value="96">96</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="defaultView" class="form-label">Default View</label>
+                <select class="form-select" id="defaultView" [(ngModel)]="userPreferences.defaultView">
+                  <option value="grid">Grid View</option>
+                  <option value="list">List View</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Notifications</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="emailNotifications" 
+                         [(ngModel)]="userPreferences.emailNotifications">
+                  <label class="form-check-label" for="emailNotifications">
+                    Email Notifications
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="scanAlerts" 
+                         [(ngModel)]="userPreferences.scanAlerts">
+                  <label class="form-check-label" for="scanAlerts">
+                    Scan Completion Alerts
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Scan Settings Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-file-search me-2"></i>
+            File Scan Settings
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="fileScanInterval" class="form-label">File Scan Interval</label>
+                <select class="form-select" id="fileScanInterval" [(ngModel)]="fileScanSettings.scanInterval">
+                  <option value="manual">Manual Only</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="concurrentFileScans" class="form-label">Concurrent File Scans</label>
+                <input type="number" class="form-control" id="concurrentFileScans" 
+                       [(ngModel)]="fileScanSettings.concurrentScans" min="1" max="10">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">File Scan Behavior</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="handleDuplicates" 
+                         [(ngModel)]="fileScanSettings.handleDuplicates">
+                  <label class="form-check-label" for="handleDuplicates">
+                    Handle Duplicates Automatically
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="scanSubdirectories" 
+                         [(ngModel)]="fileScanSettings.scanSubdirectories">
+                  <label class="form-check-label" for="scanSubdirectories">
+                    Scan Subdirectories
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="validateFileIntegrity" 
+                         [(ngModel)]="fileScanSettings.validateFileIntegrity">
+                  <label class="form-check-label" for="validateFileIntegrity">
+                    Validate File Integrity
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metadata Scan Settings Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>
+            Metadata Scan Settings
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="metadataScanInterval" class="form-label">Metadata Scan Interval</label>
+                <select class="form-select" id="metadataScanInterval" [(ngModel)]="metadataScanSettings.scanInterval">
+                  <option value="manual">Manual Only</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="concurrentMetadataScans" class="form-label">Concurrent Metadata Scans</label>
+                <input type="number" class="form-control" id="concurrentMetadataScans" 
+                       [(ngModel)]="metadataScanSettings.concurrentScans" min="1" max="5">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Metadata Sources</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="fetchFromOnline" 
+                         [(ngModel)]="metadataScanSettings.fetchFromOnline">
+                  <label class="form-check-label" for="fetchFromOnline">
+                    Fetch from Online Sources
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="updateExistingMetadata" 
+                         [(ngModel)]="metadataScanSettings.updateExistingMetadata">
+                  <label class="form-check-label" for="updateExistingMetadata">
+                    Update Existing Metadata
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="downloadImages" 
+                         [(ngModel)]="metadataScanSettings.downloadImages">
+                  <label class="form-check-label" for="downloadImages">
+                    Download Cover Images
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup & Maintenance Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-database me-2"></i>
+            Backup & Maintenance
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="backupSchedule" class="form-label">Backup Schedule</label>
+                <select class="form-select" id="backupSchedule" [(ngModel)]="backupSettings.backupSchedule">
+                  <option value="disabled">Disabled</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="backupRetention" class="form-label">Backup Retention (days)</label>
+                <input type="number" class="form-control" id="backupRetention" 
+                       [(ngModel)]="backupSettings.backupRetention" min="1" max="365">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Maintenance Tasks</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="cleanupOrphans" 
+                         [(ngModel)]="backupSettings.cleanupOrphans">
+                  <label class="form-check-label" for="cleanupOrphans">
+                    Cleanup Orphaned Files
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="optimizeDatabase" 
+                         [(ngModel)]="backupSettings.optimizeDatabase">
+                  <label class="form-check-label" for="optimizeDatabase">
+                    Optimize Database
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary" (click)="resetToDefaults()">
+          <i class="fas fa-undo me-1"></i>
+          Reset to Defaults
+        </button>
+        <button type="button" class="btn btn-primary" (click)="saveSettings()">
+          <i class="fas fa-save me-1"></i>
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
