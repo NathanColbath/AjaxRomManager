@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { Notification } from '../models/rom.model';
+import { NotificationService } from './notification.service';
 
 @Injectable({
     providedIn: 'root'
@@ -24,6 +26,11 @@ export class apiRoutes {
     public static readonly SCANNING_PROGRESS = 'scanning';
     public static readonly SCANNING_SETTINGS = 'scanning/settings';
     public static readonly SCANNING_DIRECTORY = 'scanning/directory';
+    
+    // System Settings endpoints
+    public static readonly SYSTEM_SETTINGS = 'systemsettings';
+    public static readonly SYSTEM_SETTINGS_SCAN_CONFIG = 'systemsettings/scan/configuration';
+    public static readonly SYSTEM_SETTINGS_SCAN_DIRECTORY = 'systemsettings/scan/directory';
 }
 
 
@@ -32,9 +39,10 @@ export class apiRoutes {
 })
 export class ApiService {
     private apiUrl = 'http://localhost:5005/api';
-    constructor(private http: HttpClient) {}
+    constructor(private http: HttpClient, private notificationService: NotificationService) {}
 
     public post<T>(url: string, data: any): Observable<T> {
+    
         return this.http.post<T>(`${this.apiUrl}/${url}`, data);
     }
 

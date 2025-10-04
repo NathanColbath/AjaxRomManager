@@ -373,6 +373,95 @@ export interface SystemFilter {
 }
 
 // ========================================
+// ========================================
+// Notification Models
+// ========================================
+
+export enum NotificationType {
+  Success = 'success',
+  Error = 'error',
+  Warning = 'warning',
+  Info = 'info',
+  ScanProgress = 'scan_progress',
+  ScanComplete = 'scan_complete',
+  ScanError = 'scan_error'
+}
+
+export class Notification {
+  id: string = '';
+  type: NotificationType = NotificationType.Info;
+  title: string = '';
+  message: string = '';
+  timestamp: Date = new Date();
+  isRead: boolean = false;
+  isDismissed: boolean = false;
+  duration?: number; // Auto-dismiss after this many milliseconds
+  actions?: NotificationAction[];
+  data?: any; // Additional data for specific notification types
+
+  constructor(data?: Partial<Notification>) {
+    if (data) {
+      Object.assign(this, data);
+      if (data.timestamp && typeof data.timestamp === 'string') {
+        this.timestamp = new Date(data.timestamp);
+      }
+      if (data.actions && Array.isArray(data.actions)) {
+        this.actions = data.actions.map(action => new NotificationAction(action));
+      }
+    }
+  }
+}
+
+export class NotificationAction {
+  label: string = '';
+  action: () => void = () => {};
+  style?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info';
+
+  constructor(data?: Partial<NotificationAction>) {
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
+}
+
+// ========================================
+// System Settings Models
+// ========================================
+
+export class SystemSettings {
+  id?: number;
+  key: string = '';
+  value?: string;
+  description?: string;
+  category?: string;
+  dataType: string = 'String'; // String, Int, Bool, Decimal, JSON
+  isEncrypted: boolean = false;
+  isReadOnly: boolean = false;
+  lastModified: Date = new Date();
+  modifiedBy?: string;
+
+  constructor(data?: Partial<SystemSettings>) {
+    if (data) {
+      Object.assign(this, data);
+      if (data.lastModified && typeof data.lastModified === 'string') {
+        this.lastModified = new Date(data.lastModified);
+      }
+    }
+  }
+}
+
+export class SetSettingRequest {
+  value: string = '';
+  category?: string;
+  description?: string;
+
+  constructor(data?: Partial<SetSettingRequest>) {
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
+}
+
 // Type Aliases for Component Compatibility
 // ========================================
 export type GameSystem = Platform;

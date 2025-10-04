@@ -19,40 +19,105 @@
           </h5>
         </div>
         <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="dbConnection" class="form-label">Database Connection</label>
-                <input type="text" class="form-control" id="dbConnection" 
-                       [(ngModel)]="systemSettings.dbConnection" placeholder="Connection string">
-              </div>
-              <div class="mb-3">
-                <label for="romStoragePath" class="form-label">ROM Storage Path</label>
+          <div *ngIf="isLoading" class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+            <p class="mt-2 text-muted">Loading settings...</p>
+          </div>
+          <div *ngIf="!isLoading">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="defaultDirectory" class="form-label">Default ROM Directory</label>
                 <div class="input-group">
-                  <input type="text" class="form-control" id="romStoragePath" 
-                         [(ngModel)]="systemSettings.romStoragePath" placeholder="Default ROM storage location">
-                  <button class="btn btn-outline-secondary" type="button" (click)="onFolderSelect('romStoragePath')">
+                  <input type="text" class="form-control" id="defaultDirectory" 
+                         [(ngModel)]="scanConfiguration.defaultDirectory" placeholder="Default ROM storage location">
+                  <button class="btn btn-outline-secondary" type="button" (click)="onFolderSelect('defaultDirectory')">
                     <i class="fas fa-folder-open"></i>
                   </button>
                 </div>
               </div>
+              <div class="mb-3">
+                <label for="maxFileSizeMB" class="form-label">Max File Size (MB)</label>
+                <input type="number" class="form-control" id="maxFileSizeMB" 
+                       [(ngModel)]="scanConfiguration.maxFileSizeMB" placeholder="1024">
+              </div>
+              <div class="mb-3">
+                <label for="hashAlgorithm" class="form-label">Hash Algorithm</label>
+                <select class="form-select" id="hashAlgorithm" [(ngModel)]="scanConfiguration.hashAlgorithm">
+                  <option value="MD5">MD5</option>
+                  <option value="SHA1">SHA1</option>
+                  <option value="SHA256">SHA256</option>
+                </select>
+              </div>
             </div>
             <div class="col-md-6">
               <div class="mb-3">
-                <label for="logLevel" class="form-label">Log Level</label>
-                <select class="form-select" id="logLevel" [(ngModel)]="systemSettings.logLevel">
-                  <option value="Information">Information</option>
-                  <option value="Warning">Warning</option>
-                  <option value="Error">Error</option>
-                  <option value="Debug">Debug</option>
-                </select>
+                <label for="progressUpdateIntervalSeconds" class="form-label">Progress Update Interval (seconds)</label>
+                <input type="number" class="form-control" id="progressUpdateIntervalSeconds" 
+                       [(ngModel)]="scanConfiguration.progressUpdateIntervalSeconds" min="1" max="60">
               </div>
               <div class="mb-3">
-                <label for="maxFileSize" class="form-label">Max File Size (MB)</label>
-                <input type="number" class="form-control" id="maxFileSize" 
-                       [(ngModel)]="systemSettings.maxFileSize" placeholder="1000">
+                <label for="maxConcurrentScans" class="form-label">Max Concurrent Scans</label>
+                <input type="number" class="form-control" id="maxConcurrentScans" 
+                       [(ngModel)]="scanConfiguration.maxConcurrentScans" min="1" max="10">
               </div>
             </div>
+          </div>
+          <div class="row">
+            <div class="col-12">
+              <div class="mb-3">
+                <label class="form-label">Scan Behavior Options</label>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="recursive" 
+                             [(ngModel)]="scanConfiguration.recursive">
+                      <label class="form-check-label" for="recursive">
+                        Recursive Scanning
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="autoDetectPlatform" 
+                             [(ngModel)]="scanConfiguration.autoDetectPlatform">
+                      <label class="form-check-label" for="autoDetectPlatform">
+                        Auto-detect Platform
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="createMetadata" 
+                             [(ngModel)]="scanConfiguration.createMetadata">
+                      <label class="form-check-label" for="createMetadata">
+                        Create Metadata
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="skipDuplicates" 
+                             [(ngModel)]="scanConfiguration.skipDuplicates">
+                      <label class="form-check-label" for="skipDuplicates">
+                        Skip Duplicates
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="includeSubdirectories" 
+                             [(ngModel)]="scanConfiguration.includeSubdirectories">
+                      <label class="form-check-label" for="includeSubdirectories">
+                        Include Subdirectories
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="enableBackgroundScanning" 
+                             [(ngModel)]="scanConfiguration.enableBackgroundScanning">
+                      <label class="form-check-label" for="enableBackgroundScanning">
+                        Enable Background Scanning
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           </div>
         </div>
       </div>
@@ -123,65 +188,6 @@
     </div>
   </div>
 
-  <!-- File Scan Settings Section -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h5 class="mb-0">
-            <i class="fas fa-file-search me-2"></i>
-            File Scan Settings
-          </h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="fileScanInterval" class="form-label">File Scan Interval</label>
-                <select class="form-select" id="fileScanInterval" [(ngModel)]="fileScanSettings.scanInterval">
-                  <option value="manual">Manual Only</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                </select>
-              </div>
-              <div class="mb-3">
-                <label for="concurrentFileScans" class="form-label">Concurrent File Scans</label>
-                <input type="number" class="form-control" id="concurrentFileScans" 
-                       [(ngModel)]="fileScanSettings.concurrentScans" min="1" max="10">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label class="form-label">File Scan Behavior</label>
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="handleDuplicates" 
-                         [(ngModel)]="fileScanSettings.handleDuplicates">
-                  <label class="form-check-label" for="handleDuplicates">
-                    Handle Duplicates Automatically
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="scanSubdirectories" 
-                         [(ngModel)]="fileScanSettings.scanSubdirectories">
-                  <label class="form-check-label" for="scanSubdirectories">
-                    Scan Subdirectories
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="validateFileIntegrity" 
-                         [(ngModel)]="fileScanSettings.validateFileIntegrity">
-                  <label class="form-check-label" for="validateFileIntegrity">
-                    Validate File Integrity
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Metadata Scan Settings Section -->
   <div class="row mb-4">
@@ -300,13 +306,18 @@
   <div class="row">
     <div class="col-12">
       <div class="d-flex justify-content-end gap-2">
-        <button type="button" class="btn btn-outline-secondary" (click)="resetToDefaults()">
+        <button type="button" class="btn btn-outline-secondary" 
+                (click)="resetToDefaults()" 
+                [disabled]="isLoading || isSaving">
           <i class="fas fa-undo me-1"></i>
           Reset to Defaults
         </button>
-        <button type="button" class="btn btn-primary" (click)="saveSettings()">
-          <i class="fas fa-save me-1"></i>
-          Save Settings
+        <button type="button" class="btn btn-primary" 
+                (click)="saveSettings()" 
+                [disabled]="isLoading || isSaving">
+          <i *ngIf="!isSaving" class="fas fa-save me-1"></i>
+          <i *ngIf="isSaving" class="fas fa-spinner fa-spin me-1"></i>
+          {{ isSaving ? 'Saving...' : 'Save Settings' }}
         </button>
       </div>
     </div>

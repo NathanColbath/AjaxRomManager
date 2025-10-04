@@ -6,9 +6,8 @@ import {
   ScanProgress, 
   ScanConfiguration, 
   StartScanRequest, 
-  RecurringScanRequest, 
-  SetDirectoryRequest, 
-  ScanHistoryRequest, 
+  RecurringScanRequest,
+  ScanHistoryRequest,
   PagedResult 
 } from '../models/rom.model';
 
@@ -16,220 +15,106 @@ import {
   providedIn: 'root'
 })
 export class ScanningService {
+
   constructor(private apiService: ApiService) {}
 
-  /**
-   * Starts a new scan job for the specified directory
-   */
+  // Start a new scan
   startScan(request: StartScanRequest): Observable<ScanJob> {
     return this.apiService.post<ScanJob>(apiRoutes.SCANNING_START, request);
   }
 
-  /**
-   * Starts a recurring scan job with the specified cron expression
-   */
+  // Start a recurring scan
   startRecurringScan(request: RecurringScanRequest): Observable<ScanJob> {
     return this.apiService.post<ScanJob>(apiRoutes.SCANNING_START_RECURRING, request);
   }
 
-  /**
-   * Stops a running scan job
-   */
-  stopScan(scanJobId: number): Observable<any> {
-    return this.apiService.post(`${apiRoutes.SCANNING_STOP}/${scanJobId}/stop`, {});
+  // Start a daily recurring scan (convenience method)
+  startDailyScan(directoryPath: string, platformId?: number): Observable<ScanJob> {
+    const request = new RecurringScanRequest({
+      directoryPath,
+      platformId,
+      cronExpression: '0 2 * * *', // Daily at 2 AM
+      name: `Daily scan - ${directoryPath}`
+    });
+    return this.startRecurringScan(request);
   }
 
-  /**
-   * Gets a specific scan job by ID
-   */
-  getScanJob(scanJobId: number): Observable<ScanJob> {
-    return this.apiService.get<ScanJob>(`${apiRoutes.SCANNING}/${scanJobId}`);
+  // Stop a scan
+  stopScan(scanJobId: number): Observable<void> {
+    return this.apiService.delete<void>(`${apiRoutes.SCANNING_STOP}/${scanJobId}`);
   }
 
-  /**
-   * Gets all currently active scan jobs
-   */
+  // Get active scans
   getActiveScans(): Observable<ScanJob[]> {
     return this.apiService.get<ScanJob[]>(apiRoutes.SCANNING_ACTIVE);
   }
 
-  /**
-   * Gets scan job history with optional filtering
-   */
-  getScanHistory(request: ScanHistoryRequest): Observable<PagedResult<ScanJob>> {
-    const params: any = {};
-    
-    if (request.platformId) params.platformId = request.platformId;
-    if (request.page) params.page = request.page;
-    if (request.pageSize) params.pageSize = request.pageSize;
-    if (request.status) params.status = request.status;
-    if (request.fromDate) params.fromDate = request.fromDate.toISOString();
-    if (request.toDate) params.toDate = request.toDate.toISOString();
-
-    return this.apiService.getWithParams<PagedResult<ScanJob>>(apiRoutes.SCANNING_HISTORY, params);
-  }
-
-  /**
-   * Gets the current progress of a scan job
-   */
+  // Get scan progress for a specific scan
   getScanProgress(scanJobId: number): Observable<ScanProgress> {
     return this.apiService.get<ScanProgress>(`${apiRoutes.SCANNING_PROGRESS}/${scanJobId}/progress`);
   }
 
-  /**
-   * Gets the current scan configuration settings
-   */
-  getScanSettings(): Observable<ScanConfiguration> {
+  // Get scan history with pagination
+  getScanHistory(request: ScanHistoryRequest): Observable<PagedResult<ScanJob>> {
+    const params = {
+      page: request.page.toString(),
+      pageSize: request.pageSize.toString(),
+      ...(request.platformId && { platformId: request.platformId.toString() }),
+      ...(request.status && { status: request.status }),
+      ...(request.fromDate && { fromDate: request.fromDate.toISOString() }),
+      ...(request.toDate && { toDate: request.toDate.toISOString() })
+    };
+    return this.apiService.getWithParams<PagedResult<ScanJob>>(apiRoutes.SCANNING_HISTORY, params);
+  }
+
+  // Get scan history page (convenience method)
+  getScanHistoryPage(page: number = 1, pageSize: number = 20): Observable<PagedResult<ScanJob>> {
+    const request = new ScanHistoryRequest({ page, pageSize });
+    return this.getScanHistory(request);
+  }
+
+  // Get scan configuration
+  getScanConfiguration(): Observable<ScanConfiguration> {
     return this.apiService.get<ScanConfiguration>(apiRoutes.SCANNING_SETTINGS);
   }
 
-  /**
-   * Updates the scan configuration settings
-   */
-  updateScanSettings(config: ScanConfiguration): Observable<any> {
-    return this.apiService.put(apiRoutes.SCANNING_SETTINGS, config);
+  // Update scan configuration
+  updateScanConfiguration(config: ScanConfiguration): Observable<ScanConfiguration> {
+    return this.apiService.put<ScanConfiguration>(apiRoutes.SCANNING_SETTINGS, config);
   }
 
-  /**
-   * Gets the current default scan directory
-   */
-  getScanDirectory(): Observable<string> {
-    return this.apiService.get<string>(apiRoutes.SCANNING_DIRECTORY);
+  // Set default scan directory
+  setScanDirectory(directoryPath: string): Observable<void> {
+    return this.apiService.put<void>(apiRoutes.SCANNING_DIRECTORY, { directoryPath });
   }
 
-  /**
-   * Sets the default scan directory
-   */
-  setScanDirectory(request: SetDirectoryRequest): Observable<any> {
-    return this.apiService.put(apiRoutes.SCANNING_DIRECTORY, request);
+  // Get scan statistics
+  getScanStatistics(): Observable<any> {
+    return this.apiService.get<any>(`${apiRoutes.SCANNING}/statistics`);
   }
 
-  /**
-   * Convenience method to start a simple scan with just a directory path
-   */
-  startSimpleScan(directoryPath: string, platformId?: number): Observable<ScanJob> {
-    const request = new StartScanRequest({
-      directoryPath: directoryPath,
-      platformId: platformId
-    });
-    return this.startScan(request);
+  // Get scan by ID
+  getScanJob(scanJobId: number): Observable<ScanJob> {
+    return this.apiService.get<ScanJob>(`${apiRoutes.SCANNING}/${scanJobId}`);
   }
 
-  /**
-   * Convenience method to start a scan with custom options
-   */
-  startCustomScan(
-    directoryPath: string, 
-    options: Partial<{
-      platformId: number;
-      recursive: boolean;
-      autoDetectPlatform: boolean;
-      createMetadata: boolean;
-      skipDuplicates: boolean;
-      maxFileSizeMB: number;
-      hashAlgorithm: string;
-      includeSubdirectories: boolean;
-      scanType: string;
-    }>
-  ): Observable<ScanJob> {
-    const request = new StartScanRequest({
-      directoryPath: directoryPath,
-      platformId: options.platformId,
-      options: {
-        recursive: options.recursive ?? true,
-        autoDetectPlatform: options.autoDetectPlatform ?? true,
-        createMetadata: options.createMetadata ?? true,
-        skipDuplicates: options.skipDuplicates ?? true,
-        maxFileSizeBytes: (options.maxFileSizeMB ?? 1024) * 1024 * 1024,
-        hashAlgorithm: options.hashAlgorithm ?? 'MD5',
-        includeSubdirectories: options.includeSubdirectories ?? true,
-        scanType: options.scanType ?? 'Full'
-      }
-    });
-    return this.startScan(request);
+  // Cancel a scan
+  cancelScan(scanJobId: number): Observable<void> {
+    return this.apiService.put<void>(`${apiRoutes.SCANNING}/${scanJobId}/cancel`, {});
   }
 
-  /**
-   * Convenience method to start a daily recurring scan
-   */
-  startDailyScan(directoryPath: string, platformId?: number): Observable<ScanJob> {
-    const request = new RecurringScanRequest({
-      directoryPath: directoryPath,
-      cronExpression: 'daily',
-      platformId: platformId
-    });
-    return this.startRecurringScan(request);
+  // Retry a failed scan
+  retryScan(scanJobId: number): Observable<ScanJob> {
+    return this.apiService.post<ScanJob>(`${apiRoutes.SCANNING}/${scanJobId}/retry`, {});
   }
 
-  /**
-   * Convenience method to start a weekly recurring scan
-   */
-  startWeeklyScan(directoryPath: string, platformId?: number): Observable<ScanJob> {
-    const request = new RecurringScanRequest({
-      directoryPath: directoryPath,
-      cronExpression: 'weekly',
-      platformId: platformId
-    });
-    return this.startRecurringScan(request);
+  // Delete a scan job
+  deleteScanJob(scanJobId: number): Observable<void> {
+    return this.apiService.delete<void>(`${apiRoutes.SCANNING}/${scanJobId}`);
   }
 
-  /**
-   * Convenience method to start a monthly recurring scan
-   */
-  startMonthlyScan(directoryPath: string, platformId?: number): Observable<ScanJob> {
-    const request = new RecurringScanRequest({
-      directoryPath: directoryPath,
-      cronExpression: 'monthly',
-      platformId: platformId
-    });
-    return this.startRecurringScan(request);
-  }
-
-  /**
-   * Gets scan history with default pagination
-   */
-  getScanHistoryPage(page: number = 1, pageSize: number = 20): Observable<PagedResult<ScanJob>> {
-    const request = new ScanHistoryRequest({
-      page: page,
-      pageSize: pageSize
-    });
-    return this.getScanHistory(request);
-  }
-
-  /**
-   * Gets scan history filtered by platform
-   */
-  getScanHistoryByPlatform(platformId: number, page: number = 1, pageSize: number = 20): Observable<PagedResult<ScanJob>> {
-    const request = new ScanHistoryRequest({
-      platformId: platformId,
-      page: page,
-      pageSize: pageSize
-    });
-    return this.getScanHistory(request);
-  }
-
-  /**
-   * Gets scan history filtered by status
-   */
-  getScanHistoryByStatus(status: string, page: number = 1, pageSize: number = 20): Observable<PagedResult<ScanJob>> {
-    const request = new ScanHistoryRequest({
-      status: status,
-      page: page,
-      pageSize: pageSize
-    });
-    return this.getScanHistory(request);
-  }
-
-  /**
-   * Gets scan history filtered by date range
-   */
-  getScanHistoryByDateRange(fromDate: Date, toDate: Date, page: number = 1, pageSize: number = 20): Observable<PagedResult<ScanJob>> {
-    const request = new ScanHistoryRequest({
-      fromDate: fromDate,
-      toDate: toDate,
-      page: page,
-      pageSize: pageSize
-    });
-    return this.getScanHistory(request);
+  // Get scan logs for a specific scan
+  getScanLogs(scanJobId: number): Observable<string[]> {
+    return this.apiService.get<string[]>(`${apiRoutes.SCANNING}/${scanJobId}/logs`);
   }
 }

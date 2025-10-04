@@ -1,13 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-interface SystemSettings {
-  dbConnection: string;
-  romStoragePath: string;
-  logLevel: string;
-  maxFileSize: number;
-}
+import { SystemSettingsService } from '../services/system-settings.service';
+import { NotificationService } from '../services/notification.service';
+import { ScanConfiguration, SetSettingRequest } from '../models/rom.model';
 
 interface UserPreferences {
   theme: string;
@@ -15,14 +11,6 @@ interface UserPreferences {
   defaultView: string;
   emailNotifications: boolean;
   scanAlerts: boolean;
-}
-
-interface FileScanSettings {
-  scanInterval: string;
-  concurrentScans: number;
-  handleDuplicates: boolean;
-  scanSubdirectories: boolean;
-  validateFileIntegrity: boolean;
 }
 
 interface MetadataScanSettings {
@@ -50,27 +38,14 @@ interface BackupSettings {
 export class SettingsComponent implements OnInit {
   
   // Settings objects
-  systemSettings: SystemSettings = {
-    dbConnection: '',
-    romStoragePath: '',
-    logLevel: 'Information',
-    maxFileSize: 1000
-  };
-
+  scanConfiguration: ScanConfiguration = new ScanConfiguration();
+  
   userPreferences: UserPreferences = {
     theme: 'light',
     itemsPerPage: 24,
     defaultView: 'grid',
     emailNotifications: true,
     scanAlerts: true
-  };
-
-  fileScanSettings: FileScanSettings = {
-    scanInterval: 'manual',
-    concurrentScans: 3,
-    handleDuplicates: false,
-    scanSubdirectories: true,
-    validateFileIntegrity: true
   };
 
   metadataScanSettings: MetadataScanSettings = {
@@ -88,51 +63,69 @@ export class SettingsComponent implements OnInit {
     optimizeDatabase: false
   };
 
-  constructor() { }
+  isLoading = false;
+  isSaving = false;
+
+  constructor(
+    private systemSettingsService: SystemSettingsService,
+    private notificationService: NotificationService
+  ) { }
 
   ngOnInit(): void {
     this.loadSettings();
   }
 
   loadSettings(): void {
-    // TODO: Load settings from API
-    console.log('Loading settings...');
+    this.isLoading = true;
+    
+    this.systemSettingsService.getScanConfiguration().subscribe({
+      next: (config) => {
+        this.scanConfiguration = config;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading settings:', error);
+        this.notificationService.showError(
+          'Settings Load Error',
+          'Failed to load system settings. Please try again.'
+        );
+        this.isLoading = false;
+      }
+    });
   }
 
   saveSettings(): void {
-    // TODO: Save settings to API
-    console.log('Saving settings...', {
-      system: this.systemSettings,
-      user: this.userPreferences,
-      fileScan: this.fileScanSettings,
-      metadataScan: this.metadataScanSettings,
-      backup: this.backupSettings
+    this.isSaving = true;
+    
+    this.systemSettingsService.updateScanConfiguration(this.scanConfiguration).subscribe({
+      next: () => {
+        this.notificationService.showSuccess(
+          'Settings Saved',
+          'System settings have been updated successfully.'
+        );
+        this.isSaving = false;
+      },
+      error: (error) => {
+        console.error('Error saving settings:', error);
+        this.notificationService.showError(
+          'Settings Save Error',
+          'Failed to save system settings. Please try again.'
+        );
+        this.isSaving = false;
+      }
     });
   }
 
   resetToDefaults(): void {
-    // Reset all settings to default values
-    this.systemSettings = {
-      dbConnection: '',
-      romStoragePath: '',
-      logLevel: 'Information',
-      maxFileSize: 1000
-    };
-
+    // Reset scan configuration to default values
+    this.scanConfiguration = new ScanConfiguration();
+    
     this.userPreferences = {
       theme: 'light',
       itemsPerPage: 24,
       defaultView: 'grid',
       emailNotifications: true,
       scanAlerts: true
-    };
-
-    this.fileScanSettings = {
-      scanInterval: 'manual',
-      concurrentScans: 3,
-      handleDuplicates: false,
-      scanSubdirectories: true,
-      validateFileIntegrity: true
     };
 
     this.metadataScanSettings = {
@@ -149,6 +142,11 @@ export class SettingsComponent implements OnInit {
       cleanupOrphans: false,
       optimizeDatabase: false
     };
+    
+    this.notificationService.showInfo(
+      'Settings Reset',
+      'Settings have been reset to default values. Click Save to apply changes.'
+    );
   }
 
   onFolderSelect(field: string): void {

@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core';
-import * as signalR from '@microsoft/signalr';
+import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import { ScanProgressMessage, ScanProgress } from '../models/rom.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ScanningSignalRService {
-  private connection: signalR.HubConnection | null = null;
+  private connection: HubConnection | null = null;
   private isConnected = false;
 
   constructor() {}
@@ -16,7 +16,7 @@ export class ScanningSignalRService {
       return;
     }
 
-    this.connection = new signalR.HubConnectionBuilder()
+    this.connection = new HubConnectionBuilder()
       .withUrl('http://localhost:5005/scanningHub')
       .withAutomaticReconnect()
       .build();
@@ -136,11 +136,11 @@ export class ScanningSignalRService {
     }
   }
 
-  getConnectionState(): signalR.HubConnectionState | null {
+  getConnectionState(): HubConnectionState | null {
     return this.connection?.state || null;
   }
 
   isConnectionActive(): boolean {
-    return this.isConnected && this.connection?.state === signalR.HubConnectionState.Connected;
+    return this.isConnected && this.connection?.state === HubConnectionState.Connected;
   }
 }
