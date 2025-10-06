@@ -11,6 +11,8 @@ import { NotificationService } from './notification.service';
 export class apiRoutes {
     public static readonly ROMS = 'roms';
     public static readonly ROMS_METADATA = 'roms/metadata';
+    public static readonly ROMS_UPLOAD = 'roms/upload';
+    public static readonly ROMS_UPLOAD_MULTIPLE = 'roms/upload-multiple';
     public static readonly PLATFORMS = 'platforms';
     public static readonly PLATFORMS_METADATA = 'platforms/metadata';
     public static readonly SYSTEMS = 'systems';
@@ -31,6 +33,10 @@ export class apiRoutes {
     public static readonly SYSTEM_SETTINGS = 'systemsettings';
     public static readonly SYSTEM_SETTINGS_SCAN_CONFIG = 'systemsettings/scan/configuration';
     public static readonly SYSTEM_SETTINGS_SCAN_DIRECTORY = 'systemsettings/scan/directory';
+    
+    // File Upload endpoints
+    public static readonly FILE_UPLOAD = 'fileupload';
+    public static readonly FILE_UPLOAD_PLATFORM_LOGO = 'fileupload/platform-logo';
 }
 
 
@@ -38,7 +44,7 @@ export class apiRoutes {
     providedIn: 'root'
 })
 export class ApiService {
-    private apiUrl = 'http://localhost:5005/api';
+    public apiUrl = 'http://localhost:5005/api';
     constructor(private http: HttpClient, private notificationService: NotificationService) {}
 
     public post<T>(url: string, data: any): Observable<T> {
@@ -61,6 +67,11 @@ export class ApiService {
     // Convenience method for GET requests with query parameters
     public getWithParams<T>(url: string, params: any): Observable<T> {
         return this.http.get<T>(`${this.apiUrl}/${url}`, { params });
+    }
+
+    // Method for GET requests that return text instead of JSON
+    public getText(url: string): Observable<string> {
+        return this.http.get(`${this.apiUrl}/${url}`, { responseType: 'text' });
     }
 
 }1

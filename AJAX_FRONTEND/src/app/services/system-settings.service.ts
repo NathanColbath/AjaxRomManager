@@ -63,7 +63,7 @@ export class SystemSettingsService {
    * Retrieves the current scan directory
    */
   getScanDirectory(): Observable<string> {
-    return this.apiService.get<string>(apiRoutes.SYSTEM_SETTINGS_SCAN_DIRECTORY);
+    return this.apiService.getText(apiRoutes.SYSTEM_SETTINGS_SCAN_DIRECTORY);
   }
 
   /**
@@ -128,5 +128,19 @@ export class SystemSettingsService {
       description: description
     });
     return this.setSetting(key, request);
+  }
+
+  /**
+   * Resets the database and all settings
+   */
+  resetDatabase(): Observable<any> {
+    return this.apiService.post<any>(`${apiRoutes.SYSTEM_SETTINGS}/reset-database`, {});
+  }
+
+  /**
+   * Deletes all local data (images and ROMs)
+   */
+  deleteLocalData(): Observable<any> {
+    return this.apiService.post<any>(`${apiRoutes.SYSTEM_SETTINGS}/delete-local-data`, {});
   }
 }

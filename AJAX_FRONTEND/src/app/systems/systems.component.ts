@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, apiRoutes } from '../services/api.service';
-import { GameSystem, SystemFilter } from '../models/rom.model';
+import { PlatformsService } from '../services/platforms.service';
+import { FileUploadService } from '../services/file-upload.service';
+import { Platform, SystemFilter } from '../models/rom.model';
 import { SystemCardComponent } from '../system-card/system-card.component';
 
 @Component({
@@ -13,8 +14,9 @@ import { SystemCardComponent } from '../system-card/system-card.component';
   styleUrl: './systems.component.scss'
 })
 export class SystemsComponent implements OnInit {
-  systems: GameSystem[] = [];
-  filteredSystems: GameSystem[] = [];
+  systems: Platform[] = [];
+  filteredSystems: Platform[] = [];
+  platformRomCounts: { [key: number]: number } = {};
   filter: SystemFilter = {
     searchTerm: '',
     sortBy: 'name',
@@ -28,27 +30,36 @@ export class SystemsComponent implements OnInit {
     return this.systems.filter(s => s.isActive).length;
   }
 
-  constructor(private apiService: ApiService) {}
+  constructor(private platformsService: PlatformsService, private fileUploadService: FileUploadService) {}
 
   ngOnInit(): void {
-    // ========================================
-    // SWITCHING BETWEEN TEST DATA AND API
-    // ========================================
-    
-    // FOR TEST DATA (current setup):
-    this.loadTestData();
-    
-    // FOR REAL API (when backend is ready):
-    // this.loadSystems();
+    this.loadSystems();
   }
 
   loadSystems(): void {
     this.loading = true;
     this.error = null;
     
-    this.apiService.get<GameSystem[]>(apiRoutes.SYSTEMS).subscribe({
-      next: (systems) => {
-        this.systems = systems;
+    this.platformsService.getPlatformsWithRomCounts().subscribe({
+      next: (platformsWithCounts) => {
+        // Convert the API response to our interface and store ROM counts
+        this.systems = platformsWithCounts.map(p => {
+          this.platformRomCounts[p.id] = p.romCount;
+          const platform = new Platform();
+          platform.id = p.id;
+          platform.name = p.name;
+          platform.description = p.description;
+          platform.extension = p.extension;
+          platform.extensions = p.extensions;
+          platform.emulatorPath = p.emulatorPath;
+          platform.emulatorArguments = p.emulatorArguments;
+          platform.iconPath = p.iconPath;
+          platform.isActive = p.isActive;
+          platform.createdAt = new Date(p.createdAt);
+          platform.roms = [];
+          platform.scanJobs = [];
+          return platform;
+        });
         this.applyFilters();
         this.loading = false;
       },
@@ -126,50 +137,46 @@ export class SystemsComponent implements OnInit {
     this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
   }
 
-  toggleSystemStatus(system: GameSystem): void {
-    // In real implementation, this would call the API
-    system.isActive = !system.isActive;
-    this.applyFilters();
+  toggleSystemStatus(system: Platform): void {
+    if (!system.id) return;
     
-    // FOR REAL API:
-    // this.apiService.put(`${apiRoutes.SYSTEMS}/${system.id}`, system).subscribe({
-    //   next: () => {
-    //     this.applyFilters();
-    //   },
-    //   error: (error) => {
-    //     console.error('Error updating system:', error);
-    //     system.isActive = !system.isActive; // Revert on error
-    //   }
-    // });
+    this.platformsService.toggleActiveStatus(system.id).subscribe({
+      next: (updatedSystem) => {
+        const index = this.systems.findIndex(s => s.id === system.id);
+        if (index > -1) {
+          this.systems[index] = updatedSystem;
+          this.applyFilters();
+        }
+      },
+      error: (error) => {
+        console.error('Error updating system:', error);
+        system.isActive = !system.isActive; // Revert on error
+        alert('Failed to update system status. Please try again.');
+      }
+    });
   }
 
-  deleteSystem(system: GameSystem): void {
+  deleteSystem(system: Platform): void {
+    if (!system.id) return;
+    
     if (confirm(`Are you sure you want to delete "${system.name}"? This action cannot be undone.`)) {
-      // In real implementation, this would call the API
-      const index = this.systems.findIndex(s => s.id === system.id);
-      if (index > -1) {
-        this.systems.splice(index, 1);
-        this.applyFilters();
-      }
-      
-      // FOR REAL API:
-      // this.apiService.delete(`${apiRoutes.SYSTEMS}/${system.id}`).subscribe({
-      //   next: () => {
-      //     const index = this.systems.findIndex(s => s.id === system.id);
-      //     if (index > -1) {
-      //       this.systems.splice(index, 1);
-      //       this.applyFilters();
-      //     }
-      //   },
-      //   error: (error) => {
-      //     console.error('Error deleting system:', error);
-      //     alert('Failed to delete system. Please try again.');
-      //   }
-      // });
+      this.platformsService.deletePlatform(system.id).subscribe({
+        next: () => {
+          const index = this.systems.findIndex(s => s.id === system.id);
+          if (index > -1) {
+            this.systems.splice(index, 1);
+            this.applyFilters();
+          }
+        },
+        error: (error) => {
+          console.error('Error deleting system:', error);
+          alert('Failed to delete system. Please try again.');
+        }
+      });
     }
   }
 
-  editSystem(system: GameSystem): void {
+  editSystem(system: Platform): void {
     // This would typically open a modal or navigate to an edit page
     alert(`Edit functionality for "${system.name}" would be implemented here.`);
   }
@@ -177,6 +184,10 @@ export class SystemsComponent implements OnInit {
   addNewSystem(): void {
     // This would typically open a modal or navigate to an add page
     alert('Add new system functionality would be implemented here.');
+  }
+
+  refreshData(): void {
+    this.loadSystems();
   }
 
   formatDate(date: Date | string | undefined): string {
@@ -192,18 +203,11 @@ export class SystemsComponent implements OnInit {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
-  // ========================================
-  // TEST DATA METHOD - Remove when using real API
-  // ========================================
-  loadTestData(): void {
-    this.loading = true;
-    
-    // Simulate API delay
-    setTimeout(() => {
-      // Sample game systems
-      this.systems = [];
-      this.applyFilters();
-      this.loading = false;
-    }, 1000); // Simulate 1 second loading time
+  getPlatformLogoUrl(system: Platform): string {
+    return this.fileUploadService.getPlatformLogoUrl(system.iconPath || '');
+  }
+
+  getSystemRomCount(systemId: number): number {
+    return this.platformRomCounts[systemId] || 0;
   }
 }

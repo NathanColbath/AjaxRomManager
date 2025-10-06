@@ -36,7 +36,7 @@
           <div class="row align-items-center">
             <div class="col-md-2">
               <div class="platform-logo text-center">
-                <img *ngIf="platform.iconPath" [src]="platform.iconPath" 
+                <img *ngIf="platform.iconPath" [src]="getPlatformLogoUrl()" 
                      [alt]="platform.name + ' logo'" 
                      class="img-fluid rounded" style="max-height: 80px; max-width: 80px; object-fit: cover;">
                 <div *ngIf="!platform.iconPath" class="platform-placeholder">

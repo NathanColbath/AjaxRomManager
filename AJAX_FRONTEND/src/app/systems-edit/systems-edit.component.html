@@ -102,13 +102,31 @@
                        class="form-control" 
                        id="platformLogo" 
                        accept="image/*" 
-                       (change)="onLogoSelected($event)">
+                       (change)="onLogoSelected($event)"
+                       [disabled]="isUploading">
                 <button class="btn btn-outline-secondary" type="button" 
-                        (click)="clearLogo()">
+                        (click)="clearLogo()"
+                        [disabled]="isUploading">
                   <i class="fas fa-times"></i> Clear
                 </button>
               </div>
-              <div class="form-text">Optional logo image for the platform (PNG, JPG, SVG)</div>
+              
+              <!-- Upload Progress -->
+              <div *ngIf="isUploading" class="mt-2">
+                <div class="progress">
+                  <div class="progress-bar" 
+                       [style.width.%]="uploadProgress"
+                       role="progressbar" 
+                       [attr.aria-valuenow]="uploadProgress" 
+                       aria-valuemin="0" 
+                       aria-valuemax="100">
+                    {{ uploadProgress }}%
+                  </div>
+                </div>
+                <small class="text-muted">Uploading logo...</small>
+              </div>
+              
+              <div class="form-text">Optional logo image for the platform (PNG, JPG, GIF, WebP - max 5MB)</div>
             </div>
 
 
@@ -287,10 +305,10 @@
         <button type="button" 
                 class="btn btn-primary" 
                 (click)="savePlatform()" 
-                [disabled]="!isFormValid || isSaving">
-          <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-2" role="status"></span>
-          <i *ngIf="!isSaving" class="fas fa-save me-1"></i>
-          {{ isSaving ? 'Saving...' : 'Save Platform' }}
+                [disabled]="!isFormValid || isSaving || isUploading">
+          <span *ngIf="isSaving || isUploading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+          <i *ngIf="!isSaving && !isUploading" class="fas fa-save me-1"></i>
+          {{ isUploading ? 'Uploading...' : (isSaving ? 'Saving...' : 'Save Platform') }}
         </button>
       </div>
     </div>

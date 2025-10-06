@@ -61,6 +61,7 @@
                   <input 
                     type="text" 
                     id="searchInput"
+                    name="searchInput"
                     class="form-control" 
                     placeholder="Search by name, extension, or description..."
                     [(ngModel)]="filter.searchTerm"
@@ -76,6 +77,7 @@
                 </label>
                 <select 
                   id="activeFilter"
+                  name="activeFilter"
                   class="form-select" 
                   [(ngModel)]="filter.isActive"
                   (change)="onActiveFilterChange()">
@@ -93,6 +95,7 @@
                 </label>
                 <select 
                   id="sortBy"
+                  name="sortBy"
                   class="form-select" 
                   [(ngModel)]="filter.sortBy"
                   (change)="onSortChange()">
@@ -110,6 +113,7 @@
                 </label>
                 <select 
                   id="sortOrder"
+                  name="sortOrder"
                   class="form-select" 
                   [(ngModel)]="filter.sortOrder"
                   (change)="onSortChange()">
@@ -248,7 +252,7 @@
                         <div class="d-flex align-items-center">
                           <img 
                             *ngIf="system.iconPath" 
-                            [src]="system.iconPath" 
+                            [src]="getPlatformLogoUrl(system)" 
                             class="system-thumb me-3" 
                             [alt]="system.name">
                           <div>
@@ -267,7 +271,7 @@
                       </td>
                       <td>
                         <span class="badge bg-info">
-                          {{system.roms?.length || 0}}
+                          {{getSystemRomCount(system.id || 0)}}
                         </span>
                       </td>
                       <td>

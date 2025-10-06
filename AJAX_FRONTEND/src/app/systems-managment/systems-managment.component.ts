@@ -2,22 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-
-interface Platform {
-  id: number;
-  name: string;
-  description: string;
-  extension: string;
-  emulatorPath: string;
-  emulatorArguments: string;
-  iconPath: string;
-  isActive: boolean;
-  createdAt: Date;
-  extensions: string[];
-  romCount?: number;
-  scanJobsCount?: number;
-  lastScanDate?: Date;
-}
+import { PlatformsService } from '../services/platforms.service';
+import { FileUploadService } from '../services/file-upload.service';
+import { NotificationService } from '../services/notification.service';
+import { Platform } from '../models/rom.model';
 
 @Component({
   selector: 'app-systems-managment',
@@ -41,64 +29,37 @@ export class SystemsManagmentComponent implements OnInit {
   itemsPerPage: number = 12;
   totalPages: number = 1;
 
-  constructor(private router: Router) { }
+  // Loading and error states
+  loading = false;
+  error: string | null = null;
+
+  constructor(
+    private router: Router,
+    private platformsService: PlatformsService,
+    private fileUploadService: FileUploadService,
+    private notificationService: NotificationService
+  ) { }
 
   ngOnInit(): void {
     this.loadPlatforms();
   }
 
   loadPlatforms(): void {
-    // TODO: Load platforms from API
-    // Mock data for now
-    this.platforms = [
-      {
-        id: 1,
-        name: 'Nintendo Entertainment System',
-        description: '8-bit home video game console released by Nintendo',
-        extension: 'nes',
-        emulatorPath: '/emulators/fceux.exe',
-        emulatorArguments: '--fullscreen',
-        iconPath: '',
-        isActive: true,
-        createdAt: new Date('2024-01-15'),
-        extensions: ['nes'],
-        romCount: 45,
-        scanJobsCount: 2,
-        lastScanDate: new Date('2024-01-20')
-      },
-      {
-        id: 2,
-        name: 'Super Nintendo Entertainment System',
-        description: '16-bit home video game console',
-        extension: 'snes',
-        emulatorPath: '/emulators/snes9x.exe',
-        emulatorArguments: '--fullscreen --controller 1',
-        iconPath: '',
-        isActive: true,
-        createdAt: new Date('2024-01-16'),
-        extensions: ['snes', 'smc'],
-        romCount: 32,
-        scanJobsCount: 1,
-        lastScanDate: new Date('2024-01-18')
-      },
-      {
-        id: 3,
-        name: 'Game Boy',
-        description: '8-bit handheld game console',
-        extension: 'gb',
-        emulatorPath: '/emulators/vba.exe',
-        emulatorArguments: '--fullscreen',
-        iconPath: '',
-        isActive: false,
-        createdAt: new Date('2024-01-17'),
-        extensions: ['gb'],
-        romCount: 28,
-        scanJobsCount: 0,
-        lastScanDate: undefined
-      }
-    ];
+    this.loading = true;
+    this.error = null;
     
-    this.applyFilters();
+    this.platformsService.getAllPlatforms().subscribe({
+      next: (platforms) => {
+        this.platforms = platforms;
+        this.applyFilters();
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading platforms:', error);
+        this.error = 'Failed to load platforms';
+        this.loading = false;
+      }
+    });
   }
 
   applyFilters(): void {
@@ -109,8 +70,8 @@ export class SystemsManagmentComponent implements OnInit {
       const searchLower = this.searchTerm.toLowerCase();
       filtered = filtered.filter(platform => 
         platform.name.toLowerCase().includes(searchLower) ||
-        platform.description.toLowerCase().includes(searchLower) ||
-        platform.extensions.some(ext => ext.toLowerCase().includes(searchLower))
+        (platform.description && platform.description.toLowerCase().includes(searchLower)) ||
+        (platform.extensions && platform.extensions.toLowerCase().includes(searchLower))
       );
     }
 
@@ -127,25 +88,24 @@ export class SystemsManagmentComponent implements OnInit {
         case 'name':
           return a.name.localeCompare(b.name);
         case 'created':
-          return b.createdAt.getTime() - a.createdAt.getTime();
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         case 'roms':
-          return (b.romCount || 0) - (a.romCount || 0);
+          return (b.roms?.length || 0) - (a.roms?.length || 0);
         default:
           return 0;
       }
     });
 
-    this.filteredPlatforms = filtered;
-    this.updatePagination();
+    this.updatePagination(filtered);
   }
 
-  updatePagination(): void {
-    this.totalPages = Math.ceil(this.filteredPlatforms.length / this.itemsPerPage);
+  updatePagination(filteredPlatforms: Platform[]): void {
+    this.totalPages = Math.ceil(filteredPlatforms.length / this.itemsPerPage);
     this.currentPage = Math.min(this.currentPage, this.totalPages);
     
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
-    this.filteredPlatforms = this.filteredPlatforms.slice(startIndex, endIndex);
+    this.filteredPlatforms = filteredPlatforms.slice(startIndex, endIndex);
   }
 
   getPageNumbers(): number[] {
@@ -188,17 +148,52 @@ export class SystemsManagmentComponent implements OnInit {
   }
 
   togglePlatformStatus(platform: Platform): void {
-    platform.isActive = !platform.isActive;
-    // TODO: Update platform status via API
-    console.log('Toggle platform status:', platform);
+    if (!platform.id) return;
+    
+    this.platformsService.toggleActiveStatus(platform.id).subscribe({
+      next: (updatedPlatform) => {
+        const index = this.platforms.findIndex(p => p.id === platform.id);
+        if (index > -1) {
+          this.platforms[index] = updatedPlatform;
+          this.applyFilters();
+          this.notificationService.showSuccess(
+            'Platform Status Updated',
+            `Platform "${platform.name}" is now ${updatedPlatform.isActive ? 'active' : 'inactive'}.`
+          );
+        }
+      },
+      error: (error) => {
+        console.error('Error updating platform status:', error);
+        platform.isActive = !platform.isActive; // Revert on error
+        this.notificationService.showPersistentError(
+          'Status Update Failed',
+          `Failed to update platform "${platform.name}" status. Please try again.`
+        );
+      }
+    });
   }
 
   deletePlatform(platform: Platform): void {
+    if (!platform.id) return;
+    
     if (confirm(`Are you sure you want to delete "${platform.name}"? This action cannot be undone.`)) {
-      // TODO: Delete platform via API
-      this.platforms = this.platforms.filter(p => p.id !== platform.id);
-      this.applyFilters();
-      console.log('Delete platform:', platform);
+      this.platformsService.deletePlatform(platform.id).subscribe({
+        next: () => {
+          this.platforms = this.platforms.filter(p => p.id !== platform.id);
+          this.applyFilters();
+          this.notificationService.showPersistentSuccess(
+            'Platform Deleted',
+            `Platform "${platform.name}" has been successfully deleted.`
+          );
+        },
+        error: (error) => {
+          console.error('Error deleting platform:', error);
+          this.notificationService.showPersistentError(
+            'Delete Failed',
+            `Failed to delete platform "${platform.name}". Please try again.`
+          );
+        }
+      });
     }
   }
 
@@ -210,5 +205,49 @@ export class SystemsManagmentComponent implements OnInit {
   scanPlatform(platform: Platform): void {
     // TODO: Start scan job for platform
     console.log('Scan platform:', platform);
+  }
+
+  refreshData(): void {
+    this.loadPlatforms();
+  }
+
+  onSearchChange(): void {
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  onSortChange(): void {
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  onStatusFilterChange(): void {
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.statusFilter = '';
+    this.sortBy = 'name';
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  getLastScanDate(platform: Platform): Date | null {
+    if (!platform.scanJobs || platform.scanJobs.length === 0) {
+      return null;
+    }
+    
+    // Find the most recent scan job
+    const sortedJobs = platform.scanJobs.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    
+    return sortedJobs[0]?.createdAt || null;
+  }
+
+  getPlatformLogoUrl(platform: Platform): string {
+    return this.fileUploadService.getPlatformLogoUrl(platform.iconPath || '');
   }
 }

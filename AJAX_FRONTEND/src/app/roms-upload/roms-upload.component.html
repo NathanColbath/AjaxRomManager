@@ -1,1 +1,334 @@
-<p>roms-upload works!</p>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title mb-0">
+            <i class="fas fa-upload me-2"></i>
+            Upload ROM Files
+          </h3>
+        </div>
+        <div class="card-body">
+          
+          <!-- Drag and Drop Area -->
+          <div class="upload-area" 
+               [class.drag-over]="dragOver"
+               [class.uploading]="isUploading"
+               (dragover)="onDragOver($event)"
+               (dragleave)="onDragLeave($event)"
+               (drop)="onDrop($event)">
+            
+            <div class="upload-content" *ngIf="!isUploading">
+              <div class="upload-icon">
+                <i class="fas fa-cloud-upload-alt"></i>
+              </div>
+              <h4>Drag & Drop ROM Files Here</h4>
+              <p class="text-muted">or click to browse files</p>
+              <input type="file" 
+                     class="file-input" 
+                     multiple 
+                     accept="*"
+                     (change)="onFileSelected($event)"
+                     #fileInput>
+              <button type="button" 
+                      class="btn btn-primary btn-lg"
+                      (click)="fileInput.click()">
+                <i class="fas fa-folder-open me-2"></i>
+                Choose Files
+              </button>
+            </div>
+
+            <!-- Upload Progress -->
+            <div class="upload-progress" *ngIf="isUploading">
+              <div class="progress-icon">
+                <i class="fas fa-spinner fa-spin"></i>
+              </div>
+              <h4>Uploading Files...</h4>
+              <div class="progress mb-3">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" 
+                     [style.width.%]="overallProgress"
+                     [attr.aria-valuenow]="overallProgress" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                  {{overallProgress}}%
+                </div>
+              </div>
+              <p class="text-muted">Please wait while your files are being uploaded...</p>
+            </div>
+
+            <!-- Platform Detection Progress -->
+            <div class="upload-progress" *ngIf="isDetectingPlatforms">
+              <div class="progress-icon">
+                <i class="fas fa-search fa-spin"></i>
+              </div>
+              <h4>Detecting Platforms...</h4>
+              <div class="progress mb-3">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
+                     role="progressbar" 
+                     style="width: 100%"
+                     aria-valuenow="100" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                  Analyzing Files
+                </div>
+              </div>
+              <p class="text-muted">Please wait while we analyze your files and detect the appropriate platforms...</p>
+            </div>
+          </div>
+
+          <!-- Duplicate Files Warning -->
+          <div class="duplicate-warning mt-4" *ngIf="showDuplicateWarning">
+            <div class="alert alert-warning">
+              <div class="d-flex align-items-start">
+                <i class="fas fa-exclamation-triangle me-3 mt-1"></i>
+                <div class="flex-grow-1">
+                  <h5 class="alert-heading mb-2">
+                    <i class="fas fa-copy me-2"></i>
+                    Duplicate Files Detected ({{duplicateFiles.length}})
+                  </h5>
+                  <p class="mb-3">
+                    The following files already exist in your ROM collection. You can choose to upload them anyway or remove them from the selection.
+                  </p>
+                  
+                  <div class="table-responsive mb-3">
+                    <table class="table table-sm table-warning">
+                      <thead>
+                        <tr>
+                          <th>File Name</th>
+                          <th>Size</th>
+                          <th>Existing ROM</th>
+                          <th>Platform</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let duplicate of duplicateFiles">
+                          <td>
+                            <i class="fas fa-file me-2"></i>
+                            {{duplicate.file.name}}
+                          </td>
+                          <td>{{getFileSize(duplicate.file)}}</td>
+                          <td>
+                            <span class="badge bg-info">{{duplicate.existingRom.title}}</span>
+                          </td>
+                          <td>
+                            <span class="badge bg-secondary">{{duplicate.existingRom.platform?.name || 'Unknown'}}</span>
+                          </td>
+                          <td>
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-danger"
+                                    (click)="removeDuplicateFile(duplicate.file.name)">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div class="d-flex gap-2">
+                    <button type="button" 
+                            class="btn btn-warning"
+                            (click)="uploadDuplicatesAnyway()">
+                      <i class="fas fa-upload me-2"></i>
+                      Upload Anyway
+                    </button>
+                    <button type="button" 
+                            class="btn btn-outline-secondary"
+                            (click)="dismissDuplicateWarning()">
+                      <i class="fas fa-times me-2"></i>
+                      Dismiss Warning
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selected Files List -->
+          <div class="selected-files mt-4" *ngIf="selectedFiles.length > 0">
+            <h5>
+              <i class="fas fa-list me-2"></i>
+              Selected Files ({{selectedFiles.length}})
+            </h5>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover">
+                <thead>
+                  <tr>
+                    <th>File Name</th>
+                    <th>Size</th>
+                    <th>Platform</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let file of selectedFiles">
+                    <td>
+                      <i class="fas fa-file me-2"></i>
+                      {{file.name}}
+                    </td>
+                    <td>{{getFileSize(file)}}</td>
+                    <td>
+                      <span *ngIf="filePlatformMap.has(file.name)" 
+                            class="badge bg-success">
+                        {{getPlatformName(filePlatformMap.get(file.name)!)}}
+                      </span>
+                      <span *ngIf="!filePlatformMap.has(file.name)" 
+                            class="badge bg-warning">
+                        Needs Selection
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge bg-secondary">Pending</span>
+                    </td>
+                    <td>
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-danger"
+                              (click)="removeFile(file.name)"
+                              [disabled]="isUploading">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-3">
+              <button type="button" 
+                      class="btn btn-outline-secondary"
+                      (click)="clearAll()"
+                      [disabled]="isUploading">
+                <i class="fas fa-times me-2"></i>
+                Clear All
+              </button>
+              <button type="button" 
+                      class="btn btn-success"
+                      (click)="startUpload()"
+                      [disabled]="isUploading || selectedFiles.length === 0 || filesNeedingPlatformSelection.length > 0">
+                <i class="fas fa-upload me-2"></i>
+                Start Upload
+              </button>
+            </div>
+          </div>
+
+          <!-- Platform Selection Modal -->
+          <div class="modal fade" 
+               [class.show]="showPlatformSelection" 
+               [style.display]="showPlatformSelection ? 'block' : 'none'"
+               tabindex="-1">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">
+                    <i class="fas fa-gamepad me-2"></i>
+                    Select Platform for Files
+                  </h5>
+                </div>
+                <div class="modal-body">
+                  <p class="text-muted mb-3">
+                    The following files could belong to multiple platforms. Please select the correct platform for each file:
+                  </p>
+                  
+                  <div class="platform-selection" *ngFor="let fileDetection of filesNeedingPlatformSelection">
+                    <div class="card mb-3">
+                      <div class="card-body">
+                        <h6 class="card-title">
+                          <i class="fas fa-file me-2"></i>
+                          {{fileDetection.fileName}}
+                        </h6>
+                        <p class="card-text text-muted">
+                          Extension: <span class="badge bg-info">{{fileDetection.extension}}</span>
+                        </p>
+                        
+                        <div class="platform-options">
+                          <label class="form-label">Select Platform:</label>
+                          <div class="row">
+                            <div class="col-md-6" *ngFor="let platform of fileDetection.possiblePlatforms">
+                              <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="radio" 
+                                       [name]="'platform_' + fileDetection.fileName"
+                                       [id]="'platform_' + fileDetection.fileName + '_' + platform.id"
+                                       [value]="platform.id"
+                                       (change)="onPlatformSelected(fileDetection.fileName, platform.id!)">
+                                <label class="form-check-label" 
+                                       [for]="'platform_' + fileDetection.fileName + '_' + platform.id">
+                                  <strong>{{platform.name}}</strong>
+                                  <small class="text-muted d-block">{{platform.description}}</small>
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" 
+                          class="btn btn-secondary"
+                          (click)="clearAll()">
+                    Cancel Upload
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload Results -->
+          <div class="upload-results mt-4" *ngIf="uploadResults.length > 0">
+            <h5>
+              <i class="fas fa-check-circle me-2"></i>
+              Upload Results
+            </h5>
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>File Name</th>
+                    <th>Platform</th>
+                    <th>Status</th>
+                    <th>Message</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let result of uploadResults"
+                      [class.table-success]="result.status === 'success'"
+                      [class.table-danger]="result.status === 'error'">
+                    <td>
+                      <i class="fas fa-file me-2"></i>
+                      {{result.fileName}}
+                    </td>
+                    <td>
+                      <span class="badge bg-primary">{{result.platformName}}</span>
+                    </td>
+                    <td>
+                      <span *ngIf="result.status === 'success'" 
+                            class="badge bg-success">
+                        <i class="fas fa-check me-1"></i>
+                        Success
+                      </span>
+                      <span *ngIf="result.status === 'error'" 
+                            class="badge bg-danger">
+                        <i class="fas fa-times me-1"></i>
+                        Error
+                      </span>
+                    </td>
+                    <td>
+                      <span *ngIf="result.result && result.result.message">{{result.result.message}}</span>
+                      <span *ngIf="result.error">{{result.error}}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

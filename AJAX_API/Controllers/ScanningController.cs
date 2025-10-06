@@ -13,11 +13,13 @@ namespace AJAX_API.Controllers
     public class ScanningController : ControllerBase
     {
         private readonly IFileScanningService _scanningService;
+        private readonly ISystemSettingsService _settingsService;
         private readonly ILogger<ScanningController> _logger;
 
-        public ScanningController(IFileScanningService scanningService, ILogger<ScanningController> logger)
+        public ScanningController(IFileScanningService scanningService, ISystemSettingsService settingsService, ILogger<ScanningController> logger)
         {
             _scanningService = scanningService;
+            _settingsService = settingsService;
             _logger = logger;
         }
 
@@ -105,7 +107,7 @@ namespace AJAX_API.Controllers
         /// </summary>
         /// <param name="id">The scan job ID</param>
         /// <returns>Success status</returns>
-        [HttpPost("{id}/stop")]
+        [HttpDelete("{id}")]
         public async Task<ActionResult> StopScan(int id)
         {
             try
@@ -231,7 +233,7 @@ namespace AJAX_API.Controllers
         {
             try
             {
-                var config = await _scanningService.GetScanConfigurationAsync();
+                var config = await _settingsService.GetScanConfigurationAsync();
                 return Ok(config);
             }
             catch (Exception ex)
@@ -256,7 +258,7 @@ namespace AJAX_API.Controllers
                     return BadRequest("Configuration is required");
                 }
 
-                await _scanningService.UpdateScanConfigurationAsync(config);
+                await _settingsService.UpdateScanConfigurationAsync(config);
                 
                 _logger.LogInformation("Updated scan configuration");
                 return Ok(new { message = "Scan configuration updated successfully" });
@@ -277,7 +279,7 @@ namespace AJAX_API.Controllers
         {
             try
             {
-                var directory = await _scanningService.GetScanDirectoryAsync();
+                var directory = await _settingsService.GetScanDirectoryAsync();
                 return Ok(directory);
             }
             catch (Exception ex)
@@ -307,7 +309,7 @@ namespace AJAX_API.Controllers
                     return BadRequest($"Directory does not exist: {request.DirectoryPath}");
                 }
 
-                await _scanningService.SetScanDirectoryAsync(request.DirectoryPath);
+                await _settingsService.SetScanDirectoryAsync(request.DirectoryPath);
                 
                 _logger.LogInformation("Updated scan directory to {DirectoryPath}", request.DirectoryPath);
                 return Ok(new { message = "Scan directory updated successfully" });
@@ -316,6 +318,128 @@ namespace AJAX_API.Controllers
             {
                 _logger.LogError(ex, "Error setting scan directory to {DirectoryPath}", request.DirectoryPath);
                 return StatusCode(500, "An error occurred while setting scan directory");
+            }
+        }
+
+        /// <summary>
+        /// Cancels a scan job
+        /// </summary>
+        /// <param name="id">The scan job ID</param>
+        /// <returns>Success status</returns>
+        [HttpPut("{id}/cancel")]
+        public async Task<ActionResult> CancelScan(int id)
+        {
+            try
+            {
+                var cancelled = await _scanningService.CancelScanAsync(id);
+                if (!cancelled)
+                {
+                    return NotFound($"Scan job {id} not found or not cancellable");
+                }
+
+                _logger.LogInformation("Cancelled scan job {ScanJobId}", id);
+                return Ok(new { message = "Scan job cancelled successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling scan job {ScanJobId}", id);
+                return StatusCode(500, "An error occurred while cancelling the scan");
+            }
+        }
+
+        /// <summary>
+        /// Retries a failed scan job
+        /// </summary>
+        /// <param name="id">The scan job ID</param>
+        /// <returns>The retried scan job</returns>
+        [HttpPost("{id}/retry")]
+        public async Task<ActionResult<ScanJob>> RetryScan(int id)
+        {
+            try
+            {
+                var retryJob = await _scanningService.RetryScanAsync(id);
+                if (retryJob == null)
+                {
+                    return NotFound($"Scan job {id} not found or not retryable");
+                }
+
+                _logger.LogInformation("Retried scan job {OriginalScanJobId} as {NewScanJobId}", id, retryJob.Id);
+                return Ok(retryJob);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrying scan job {ScanJobId}", id);
+                return StatusCode(500, "An error occurred while retrying the scan");
+            }
+        }
+
+        /// <summary>
+        /// Deletes a scan job permanently
+        /// </summary>
+        /// <param name="id">The scan job ID</param>
+        /// <returns>Success status</returns>
+        [HttpDelete("{id}/delete")]
+        public async Task<ActionResult> DeleteScanJob(int id)
+        {
+            try
+            {
+                var deleted = await _scanningService.DeleteScanJobAsync(id);
+                if (!deleted)
+                {
+                    return NotFound($"Scan job {id} not found");
+                }
+
+                _logger.LogInformation("Deleted scan job {ScanJobId}", id);
+                return Ok(new { message = "Scan job deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting scan job {ScanJobId}", id);
+                return StatusCode(500, "An error occurred while deleting the scan job");
+            }
+        }
+
+        /// <summary>
+        /// Gets scan logs for a specific scan job
+        /// </summary>
+        /// <param name="id">The scan job ID</param>
+        /// <returns>List of log messages</returns>
+        [HttpGet("{id}/logs")]
+        public async Task<ActionResult<IEnumerable<string>>> GetScanLogs(int id)
+        {
+            try
+            {
+                var logs = await _scanningService.GetScanLogsAsync(id);
+                return Ok(logs);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Scan job {ScanJobId} not found", id);
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving scan logs for job {ScanJobId}", id);
+                return StatusCode(500, "An error occurred while retrieving scan logs");
+            }
+        }
+
+        /// <summary>
+        /// Gets scan statistics
+        /// </summary>
+        /// <returns>Scan statistics</returns>
+        [HttpGet("statistics")]
+        public async Task<ActionResult<object>> GetScanStatistics()
+        {
+            try
+            {
+                var stats = await _scanningService.GetScanStatisticsAsync();
+                return Ok(stats);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving scan statistics");
+                return StatusCode(500, "An error occurred while retrieving scan statistics");
             }
         }
     }

@@ -26,19 +26,21 @@
                   <i class="fas fa-search"></i>
                 </span>
                 <input type="text" class="form-control" 
+                       name="searchTerm"
                        [(ngModel)]="searchTerm" 
+                       (input)="onSearchChange()"
                        placeholder="Search platforms...">
               </div>
             </div>
             <div class="col-md-3">
-              <select class="form-select" [(ngModel)]="statusFilter">
+              <select class="form-select" name="statusFilter" [(ngModel)]="statusFilter" (change)="onStatusFilterChange()">
                 <option value="">All Status</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
             </div>
             <div class="col-md-3">
-              <select class="form-select" [(ngModel)]="sortBy">
+              <select class="form-select" name="sortBy" [(ngModel)]="sortBy" (change)="onSortChange()">
                 <option value="name">Sort by Name</option>
                 <option value="created">Sort by Created Date</option>
                 <option value="roms">Sort by ROM Count</option>
@@ -60,7 +62,7 @@
               <!-- Platform Header -->
               <div class="d-flex align-items-start mb-3">
                 <div class="platform-icon me-3">
-                  <img *ngIf="platform.iconPath" [src]="platform.iconPath" 
+                  <img *ngIf="platform.iconPath" [src]="getPlatformLogoUrl(platform)" 
                        [alt]="platform.name + ' logo'" 
                        class="img-fluid rounded" style="width: 50px; height: 50px; object-fit: cover;">
                   <div *ngIf="!platform.iconPath" class="platform-placeholder-small">
@@ -120,15 +122,15 @@
               <!-- Platform Stats -->
               <div class="row text-center small text-muted">
                 <div class="col-4">
-                  <div class="fw-bold">{{ platform.romCount || 0 }}</div>
+                  <div class="fw-bold">{{ platform.roms?.length || 0 }}</div>
                   <div>ROMs</div>
                 </div>
                 <div class="col-4">
-                  <div class="fw-bold">{{ platform.scanJobsCount || 0 }}</div>
+                  <div class="fw-bold">{{ platform.scanJobs?.length || 0 }}</div>
                   <div>Scan Jobs</div>
                 </div>
                 <div class="col-4">
-                  <div class="fw-bold">{{ platform.lastScanDate | date:'short' || 'Never' }}</div>
+                  <div class="fw-bold">{{ getLastScanDate(platform) | date:'short' || 'Never' }}</div>
                   <div>Last Scan</div>
                 </div>
               </div>

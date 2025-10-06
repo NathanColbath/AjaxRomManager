@@ -73,19 +73,19 @@ export class ScanningService {
     return this.getScanHistory(request);
   }
 
-  // Get scan configuration
+  // Get scan configuration from system settings
   getScanConfiguration(): Observable<ScanConfiguration> {
-    return this.apiService.get<ScanConfiguration>(apiRoutes.SCANNING_SETTINGS);
+    return this.apiService.get<ScanConfiguration>(apiRoutes.SYSTEM_SETTINGS_SCAN_CONFIG);
   }
 
-  // Update scan configuration
+  // Update scan configuration in system settings
   updateScanConfiguration(config: ScanConfiguration): Observable<ScanConfiguration> {
-    return this.apiService.put<ScanConfiguration>(apiRoutes.SCANNING_SETTINGS, config);
+    return this.apiService.put<ScanConfiguration>(apiRoutes.SYSTEM_SETTINGS_SCAN_CONFIG, config);
   }
 
-  // Set default scan directory
+  // Set default scan directory in system settings
   setScanDirectory(directoryPath: string): Observable<void> {
-    return this.apiService.put<void>(apiRoutes.SCANNING_DIRECTORY, { directoryPath });
+    return this.apiService.put<void>(apiRoutes.SYSTEM_SETTINGS_SCAN_DIRECTORY, { directoryPath });
   }
 
   // Get scan statistics

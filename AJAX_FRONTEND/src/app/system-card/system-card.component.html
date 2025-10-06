@@ -3,7 +3,7 @@
   <div class="system-image-container">
     <img 
       *ngIf="system.iconPath; else systemPlaceholder"
-      [src]="system.iconPath" 
+      [src]="getPlatformLogoUrl()" 
       class="system-image" 
       [alt]="system.name">
     <ng-template #systemPlaceholder>

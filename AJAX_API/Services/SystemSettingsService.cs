@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using AjaxRomManager.Api.Data;
 using AjaxRomManager.Api.Models;
+using AJAX_API.Constants;
 
 namespace AJAX_API.Services
 {
@@ -16,6 +17,8 @@ namespace AJAX_API.Services
         Task SetScanDirectoryAsync(string directoryPath);
         Task<bool> SettingExistsAsync(string key);
         Task DeleteSettingAsync(string key);
+        Task ResetDatabaseAsync();
+        Task<int> DeleteLocalDataAsync();
     }
 
     public class SystemSettingsService : ISystemSettingsService
@@ -118,21 +121,21 @@ namespace AJAX_API.Services
         {
             var config = new ScanConfiguration();
             
-            config.DefaultDirectory = await GetSettingAsync("scan.default_directory") ?? "C:\\Roms";
-            config.Recursive = await GetSettingAsync<bool>("scan.recursive") ?? true;
-            config.AutoDetectPlatform = await GetSettingAsync<bool>("scan.auto_detect_platform") ?? true;
-            config.CreateMetadata = await GetSettingAsync<bool>("scan.create_metadata") ?? true;
-            config.SkipDuplicates = await GetSettingAsync<bool>("scan.skip_duplicates") ?? true;
-            config.MaxFileSizeMB = await GetSettingAsync<int>("scan.max_file_size_mb") ?? 1024;
-            config.HashAlgorithm = await GetSettingAsync("scan.file_hash_algorithm") ?? "MD5";
-            config.IncludeSubdirectories = await GetSettingAsync<bool>("scan.include_subdirectories") ?? true;
-            config.ProgressUpdateIntervalSeconds = await GetSettingAsync<int>("scan.progress_update_interval") ?? 5;
-            config.EnableBackgroundScanning = await GetSettingAsync<bool>("scan.enable_background") ?? true;
-            config.MaxConcurrentScans = await GetSettingAsync<int>("scan.max_concurrent") ?? 3;
+            config.DefaultDirectory = await GetSettingAsync(SystemSettingsConstants.SCAN_DEFAULT_DIRECTORY) ?? SystemSettingsConstants.DefaultValues.DEFAULT_SCAN_DIRECTORY;
+            config.Recursive = await GetSettingAsync<bool>(SystemSettingsConstants.SCAN_RECURSIVE) ?? true;
+            config.AutoDetectPlatform = await GetSettingAsync<bool>(SystemSettingsConstants.SCAN_AUTO_DETECT_PLATFORM) ?? true;
+            config.CreateMetadata = await GetSettingAsync<bool>(SystemSettingsConstants.SCAN_CREATE_METADATA) ?? true;
+            config.SkipDuplicates = await GetSettingAsync<bool>(SystemSettingsConstants.SCAN_SKIP_DUPLICATES) ?? true;
+            config.MaxFileSizeMB = await GetSettingAsync<int>(SystemSettingsConstants.SCAN_MAX_FILE_SIZE_MB) ?? SystemSettingsConstants.DefaultValues.DEFAULT_MAX_FILE_SIZE_MB;
+            config.HashAlgorithm = await GetSettingAsync(SystemSettingsConstants.SCAN_FILE_HASH_ALGORITHM) ?? SystemSettingsConstants.DefaultValues.DEFAULT_HASH_ALGORITHM;
+            config.IncludeSubdirectories = await GetSettingAsync<bool>(SystemSettingsConstants.SCAN_INCLUDE_SUBDIRECTORIES) ?? true;
+            config.ProgressUpdateIntervalSeconds = await GetSettingAsync<int>(SystemSettingsConstants.SCAN_PROGRESS_UPDATE_INTERVAL) ?? SystemSettingsConstants.DefaultValues.DEFAULT_PROGRESS_UPDATE_INTERVAL;
+            config.EnableBackgroundScanning = await GetSettingAsync<bool>(SystemSettingsConstants.SCAN_ENABLE_BACKGROUND) ?? true;
+            config.MaxConcurrentScans = await GetSettingAsync<int>(SystemSettingsConstants.SCAN_MAX_CONCURRENT) ?? SystemSettingsConstants.DefaultValues.DEFAULT_MAX_CONCURRENT_SCANS;
 
             // Parse JSON arrays for patterns
-            var filePatterns = await GetSettingAsync("scan.default_file_patterns");
-            var excludePatterns = await GetSettingAsync("scan.default_exclude_patterns");
+            var filePatterns = await GetSettingAsync(SystemSettingsConstants.SCAN_DEFAULT_FILE_PATTERNS);
+            var excludePatterns = await GetSettingAsync(SystemSettingsConstants.SCAN_DEFAULT_EXCLUDE_PATTERNS);
             
             if (!string.IsNullOrEmpty(filePatterns))
             {
@@ -163,40 +166,40 @@ namespace AJAX_API.Services
 
         public async Task UpdateScanConfigurationAsync(ScanConfiguration config)
         {
-            await SetSettingAsync("scan.default_directory", config.DefaultDirectory, "Scanning", "Default directory for ROM scanning");
-            await SetSettingAsync("scan.recursive", config.Recursive, "Scanning", "Whether to scan subdirectories recursively");
-            await SetSettingAsync("scan.auto_detect_platform", config.AutoDetectPlatform, "Scanning", "Automatically detect platform from file extension");
-            await SetSettingAsync("scan.create_metadata", config.CreateMetadata, "Scanning", "Create metadata for scanned ROMs");
-            await SetSettingAsync("scan.skip_duplicates", config.SkipDuplicates, "Scanning", "Skip files that already exist in database");
-            await SetSettingAsync("scan.max_file_size_mb", config.MaxFileSizeMB, "Scanning", "Maximum file size in MB");
-            await SetSettingAsync("scan.file_hash_algorithm", config.HashAlgorithm, "Scanning", "Hash algorithm for file integrity");
-            await SetSettingAsync("scan.include_subdirectories", config.IncludeSubdirectories, "Scanning", "Include subdirectories in scan");
-            await SetSettingAsync("scan.progress_update_interval", config.ProgressUpdateIntervalSeconds, "Scanning", "Progress update interval in seconds");
-            await SetSettingAsync("scan.enable_background", config.EnableBackgroundScanning, "Scanning", "Enable background scanning");
-            await SetSettingAsync("scan.max_concurrent", config.MaxConcurrentScans, "Scanning", "Maximum concurrent scan jobs");
+            await SetSettingAsync(SystemSettingsConstants.SCAN_DEFAULT_DIRECTORY, config.DefaultDirectory, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_DEFAULT_DIRECTORY_DESC);
+            await SetSettingAsync(SystemSettingsConstants.SCAN_RECURSIVE, config.Recursive, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_RECURSIVE_DESC);
+            await SetSettingAsync(SystemSettingsConstants.SCAN_AUTO_DETECT_PLATFORM, config.AutoDetectPlatform, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_AUTO_DETECT_PLATFORM_DESC);
+            await SetSettingAsync(SystemSettingsConstants.SCAN_CREATE_METADATA, config.CreateMetadata, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_CREATE_METADATA_DESC);
+            await SetSettingAsync(SystemSettingsConstants.SCAN_SKIP_DUPLICATES, config.SkipDuplicates, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_SKIP_DUPLICATES_DESC);
+            await SetSettingAsync(SystemSettingsConstants.SCAN_MAX_FILE_SIZE_MB, config.MaxFileSizeMB, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_MAX_FILE_SIZE_MB_DESC);
+            await SetSettingAsync(SystemSettingsConstants.SCAN_FILE_HASH_ALGORITHM, config.HashAlgorithm, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_FILE_HASH_ALGORITHM_DESC);
+            await SetSettingAsync(SystemSettingsConstants.SCAN_INCLUDE_SUBDIRECTORIES, config.IncludeSubdirectories, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_INCLUDE_SUBDIRECTORIES_DESC);
+            await SetSettingAsync(SystemSettingsConstants.SCAN_PROGRESS_UPDATE_INTERVAL, config.ProgressUpdateIntervalSeconds, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_PROGRESS_UPDATE_INTERVAL_DESC);
+            await SetSettingAsync(SystemSettingsConstants.SCAN_ENABLE_BACKGROUND, config.EnableBackgroundScanning, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_ENABLE_BACKGROUND_DESC);
+            await SetSettingAsync(SystemSettingsConstants.SCAN_MAX_CONCURRENT, config.MaxConcurrentScans, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_MAX_CONCURRENT_DESC);
 
             // Serialize arrays to JSON
             if (config.DefaultFilePatterns.Length > 0)
             {
                 var filePatternsJson = System.Text.Json.JsonSerializer.Serialize(config.DefaultFilePatterns);
-                await SetSettingAsync("scan.default_file_patterns", filePatternsJson, "Scanning", "Default file patterns to include");
+                await SetSettingAsync(SystemSettingsConstants.SCAN_DEFAULT_FILE_PATTERNS, filePatternsJson, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_DEFAULT_FILE_PATTERNS_DESC);
             }
 
             if (config.DefaultExcludePatterns.Length > 0)
             {
                 var excludePatternsJson = System.Text.Json.JsonSerializer.Serialize(config.DefaultExcludePatterns);
-                await SetSettingAsync("scan.default_exclude_patterns", excludePatternsJson, "Scanning", "Default patterns to exclude");
+                await SetSettingAsync(SystemSettingsConstants.SCAN_DEFAULT_EXCLUDE_PATTERNS, excludePatternsJson, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_DEFAULT_EXCLUDE_PATTERNS_DESC);
             }
         }
 
         public async Task<string> GetScanDirectoryAsync()
         {
-            return await GetSettingAsync("scan.default_directory") ?? "C:\\Roms";
+            return await GetSettingAsync(SystemSettingsConstants.SCAN_DEFAULT_DIRECTORY) ?? SystemSettingsConstants.DefaultValues.DEFAULT_SCAN_DIRECTORY;
         }
 
         public async Task SetScanDirectoryAsync(string directoryPath)
         {
-            await SetSettingAsync("scan.default_directory", directoryPath, "Scanning", "Default directory for ROM scanning");
+            await SetSettingAsync(SystemSettingsConstants.SCAN_DEFAULT_DIRECTORY, directoryPath, SystemSettingsConstants.Categories.SCANNING, SystemSettingsConstants.Descriptions.SCAN_DEFAULT_DIRECTORY_DESC);
         }
 
         public async Task<bool> SettingExistsAsync(string key)
@@ -211,6 +214,117 @@ namespace AJAX_API.Services
             {
                 _context.SystemSettings.Remove(setting);
                 await _context.SaveChangesAsync();
+            }
+        }
+
+        /// <summary>
+        /// Resets the database by clearing all data
+        /// </summary>
+        public async Task ResetDatabaseAsync()
+        {
+            try
+            {
+                // Clear all tables in the correct order (respecting foreign key constraints)
+                _context.RomMetadata.RemoveRange(_context.RomMetadata);
+                _context.Roms.RemoveRange(_context.Roms);
+                _context.ScanJobs.RemoveRange(_context.ScanJobs);
+                _context.Platforms.RemoveRange(_context.Platforms);
+                _context.SystemSettings.RemoveRange(_context.SystemSettings);
+                _context.UserPreferences.RemoveRange(_context.UserPreferences);
+                _context.Users.RemoveRange(_context.Users);
+                _context.SystemLogs.RemoveRange(_context.SystemLogs);
+
+                await _context.SaveChangesAsync();
+                
+                _logger.LogWarning("Database has been completely reset - all data cleared");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting database");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Deletes all local data (images and ROMs)
+        /// </summary>
+        /// <returns>Number of files deleted</returns>
+        public async Task<int> DeleteLocalDataAsync()
+        {
+            int deletedFiles = 0;
+            
+            try
+            {
+                // Get working ROM directory from settings
+                var workingRomDir = await GetSettingAsync(SystemSettingsConstants.SCAN_DEFAULT_DIRECTORY);
+                if (string.IsNullOrEmpty(workingRomDir))
+                {
+                    workingRomDir = SystemSettingsConstants.DefaultValues.DEFAULT_SCAN_DIRECTORY;
+                }
+
+                // Delete ROM files
+                if (Directory.Exists(workingRomDir))
+                {
+                    var romFiles = Directory.GetFiles(workingRomDir, "*", SearchOption.AllDirectories);
+                    foreach (var file in romFiles)
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                            deletedFiles++;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Could not delete file: {FilePath}", file);
+                        }
+                    }
+                }
+
+                // Delete uploads directory (fallback)
+                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+                if (Directory.Exists(uploadsDir))
+                {
+                    var uploadFiles = Directory.GetFiles(uploadsDir, "*", SearchOption.AllDirectories);
+                    foreach (var file in uploadFiles)
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                            deletedFiles++;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Could not delete file: {FilePath}", file);
+                        }
+                    }
+                }
+
+                // Delete images directory
+                var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "images");
+                if (Directory.Exists(imagesDir))
+                {
+                    var imageFiles = Directory.GetFiles(imagesDir, "*", SearchOption.AllDirectories);
+                    foreach (var file in imageFiles)
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                            deletedFiles++;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Could not delete file: {FilePath}", file);
+                        }
+                    }
+                }
+
+                _logger.LogWarning("Local data deletion completed - {FileCount} files deleted", deletedFiles);
+                return deletedFiles;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting local data");
+                throw;
             }
         }
     }

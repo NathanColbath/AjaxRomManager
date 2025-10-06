@@ -2,9 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-import { ApiService, apiRoutes } from '../services/api.service';
-import { Rom, Platform } from '../models/rom.model';
-import { mockPlatforms, mockRoms } from './roms-mockdata';
+import { RomsService } from '../services/roms.service';
+import { PlatformsService } from '../services/platforms.service';
+import { FileUploadService } from '../services/file-upload.service';
+import { Rom, Platform, RomFilter } from '../models/rom.model';
 
 interface PlatformWithRomCount extends Platform {
   romCount: number;
@@ -21,6 +22,7 @@ export class RomsComponent implements OnInit {
   platforms: Platform[] = [];
   filteredPlatforms: PlatformWithRomCount[] = [];
   roms: Rom[] = [];
+  platformRomCounts: { [key: number]: number } = {};
   
   // Search and filter properties
   searchTerm: string = '';
@@ -30,28 +32,51 @@ export class RomsComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  constructor(private apiService: ApiService, private router: Router) {}
+  // Filter object for API calls
+  romFilter: RomFilter = {
+    page: 1,
+    pageSize: 20,
+    sortBy: 'name',
+    sortOrder: 'asc'
+  };
+
+  constructor(
+    private romsService: RomsService, 
+    private platformsService: PlatformsService, 
+    private fileUploadService: FileUploadService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
-    // ========================================
-    // SWITCHING BETWEEN TEST DATA AND API
-    // ========================================
-    
-    // FOR TEST DATA (current setup):
-    this.loadTestData();
-    
-    // FOR REAL API (when backend is ready):
-    // this.loadPlatforms();
-    // this.loadRoms();
+    this.loadPlatforms();
+    this.loadRoms();
   }
 
   loadPlatforms(): void {
     this.loading = true;
     this.error = null;
     
-    this.apiService.get<Platform[]>(apiRoutes.PLATFORMS).subscribe({
-      next: (platforms) => {
-        this.platforms = platforms;
+    this.platformsService.getPlatformsWithRomCounts().subscribe({
+      next: (platformsWithCounts) => {
+        // Convert the API response to our interface and store ROM counts
+        this.platforms = platformsWithCounts.map(p => {
+          this.platformRomCounts[p.id] = p.romCount;
+          const platform = new Platform();
+          platform.id = p.id;
+          platform.name = p.name;
+          platform.description = p.description;
+          platform.extension = p.extension;
+          platform.extensions = p.extensions;
+          platform.emulatorPath = p.emulatorPath;
+          platform.emulatorArguments = p.emulatorArguments;
+          platform.iconPath = p.iconPath;
+          platform.isActive = p.isActive;
+          platform.createdAt = new Date(p.createdAt);
+          platform.roms = [];
+          platform.scanJobs = [];
+          return platform;
+        });
+        
         this.applyFilters();
         this.loading = false;
       },
@@ -64,13 +89,23 @@ export class RomsComponent implements OnInit {
   }
 
   loadRoms(): void {
-    this.apiService.get<Rom[]>(apiRoutes.ROMS).subscribe({
-      next: (roms) => {
-        this.roms = roms;
+    this.loading = true;
+    this.error = null;
+    
+    // Update filter with current search term
+    this.romFilter.searchTerm = this.searchTerm;
+    this.romFilter.sortBy = this.sortBy;
+    
+    this.romsService.getRoms(this.romFilter).subscribe({
+      next: (result) => {
+        this.roms = result.items;
         this.applyFilters();
+        this.loading = false;
       },
       error: (error) => {
         console.error('Error loading ROMs:', error);
+        this.error = 'Failed to load ROMs';
+        this.loading = false;
       }
     });
   }
@@ -100,7 +135,7 @@ export class RomsComponent implements OnInit {
         case 'name':
           return a.name.localeCompare(b.name);
         case 'romCount':
-          return this.getPlatformRomCount(b.id || 0) - this.getPlatformRomCount(a.id || 0);
+          return (this.platformRomCounts[b.id || 0] || 0) - (this.platformRomCounts[a.id || 0] || 0);
         case 'created':
           return b.createdAt.getTime() - a.createdAt.getTime();
         default:
@@ -111,16 +146,16 @@ export class RomsComponent implements OnInit {
     // Add ROM count to each platform
     this.filteredPlatforms = filtered.map(platform => ({
       ...platform,
-      romCount: this.getPlatformRomCount(platform.id || 0)
+      romCount: this.platformRomCounts[platform.id || 0] || 0
     } as PlatformWithRomCount));
   }
 
   getPlatformRomCount(platformId: number): number {
-    return this.roms.filter(rom => rom.platformId === platformId).length;
+    return this.platformRomCounts[platformId] || 0;
   }
 
   getTotalRomCount(): number {
-    return this.roms.length;
+    return this.roms?.length || 0;
   }
 
   viewPlatformRoms(platform: Platform): void {
@@ -131,20 +166,37 @@ export class RomsComponent implements OnInit {
     }
   }
 
-  // ========================================
-  // TEST DATA METHOD - Remove when using real API
-  // ========================================
-  loadTestData(): void {
-    this.loading = true;
-    
-    // Simulate API delay
-    setTimeout(() => {
-      // Use clean mock data
-      this.platforms = mockPlatforms;
-      this.roms = mockRoms;
+  onSearch(): void {
+    this.loadRoms();
+  }
 
-      this.applyFilters();
-      this.loading = false;
-    }, 1000); // Simulate 1 second loading time
+  onSortChange(): void {
+    this.loadRoms();
+  }
+
+  onStatusFilterChange(): void {
+    this.applyFilters();
+  }
+
+  refreshData(): void {
+    this.loadPlatforms();
+    this.loadRoms();
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.statusFilter = '';
+    this.sortBy = 'name';
+    this.romFilter = {
+      page: 1,
+      pageSize: 20,
+      sortBy: 'name',
+      sortOrder: 'asc'
+    };
+    this.loadRoms();
+  }
+
+  getPlatformLogoUrl(platform: Platform): string {
+    return this.fileUploadService.getPlatformLogoUrl(platform.iconPath || '');
   }
 }

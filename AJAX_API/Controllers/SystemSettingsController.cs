@@ -2,47 +2,26 @@ using Microsoft.AspNetCore.Mvc;
 using AjaxRomManager.Api.Models;
 using AJAX_API.Services;
 
-namespace AjaxRomManager.Api.Controllers
+namespace AJAX_API.Controllers
 {
     /// <summary>
-    /// Controller for managing system settings and configuration
+    /// Controller for managing system settings
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class SystemSettingsController : ControllerBase
     {
-        private readonly ISystemSettingsService _systemSettingsService;
+        private readonly ISystemSettingsService _settingsService;
         private readonly ILogger<SystemSettingsController> _logger;
 
-        public SystemSettingsController(ISystemSettingsService systemSettingsService, ILogger<SystemSettingsController> logger)
+        public SystemSettingsController(ISystemSettingsService settingsService, ILogger<SystemSettingsController> logger)
         {
-            _systemSettingsService = systemSettingsService;
+            _settingsService = settingsService;
             _logger = logger;
         }
 
         /// <summary>
-        /// Retrieves all system settings
-        /// </summary>
-        /// <returns>List of all system settings</returns>
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<SystemSettings>>> GetAllSettings()
-        {
-            try
-            {
-                // This would need to be implemented in the service to get all settings
-                // For now, we'll return the scan configuration as a structured response
-                var scanConfig = await _systemSettingsService.GetScanConfigurationAsync();
-                return Ok(scanConfig);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving system settings");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        /// <summary>
-        /// Retrieves a specific setting by key
+        /// Gets a system setting by key
         /// </summary>
         /// <param name="key">The setting key</param>
         /// <returns>The setting value</returns>
@@ -51,38 +30,46 @@ namespace AjaxRomManager.Api.Controllers
         {
             try
             {
-                var value = await _systemSettingsService.GetSettingAsync(key);
+                var value = await _settingsService.GetSettingAsync(key);
                 if (value == null)
                 {
-                    return NotFound($"Setting with key '{key}' not found");
+                    return NotFound($"Setting '{key}' not found");
                 }
+
                 return Ok(value);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving setting with key {Key}", key);
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error retrieving setting {Key}", key);
+                return StatusCode(500, "An error occurred while retrieving the setting");
             }
         }
 
         /// <summary>
-        /// Creates or updates a system setting
+        /// Sets a system setting
         /// </summary>
         /// <param name="key">The setting key</param>
         /// <param name="request">The setting value and metadata</param>
-        /// <returns>The updated setting</returns>
-        [HttpPost("{key}")]
+        /// <returns>Success status</returns>
+        [HttpPut("{key}")]
         public async Task<ActionResult> SetSetting(string key, [FromBody] SetSettingRequest request)
         {
             try
             {
-                await _systemSettingsService.SetSettingAsync(key, request.Value, request.Category, request.Description);
+                if (string.IsNullOrEmpty(request.Value))
+                {
+                    return BadRequest("Setting value is required");
+                }
+
+                await _settingsService.SetSettingAsync(key, request.Value, request.Category, request.Description);
+                
+                _logger.LogInformation("Updated setting {Key}", key);
                 return Ok(new { message = "Setting updated successfully" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error setting value for key {Key}", key);
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error setting {Key}", key);
+                return StatusCode(500, "An error occurred while setting the value");
             }
         }
 
@@ -90,117 +77,169 @@ namespace AjaxRomManager.Api.Controllers
         /// Deletes a system setting
         /// </summary>
         /// <param name="key">The setting key</param>
-        /// <returns>Success response</returns>
+        /// <returns>Success status</returns>
         [HttpDelete("{key}")]
         public async Task<ActionResult> DeleteSetting(string key)
         {
             try
             {
-                await _systemSettingsService.DeleteSettingAsync(key);
+                var exists = await _settingsService.SettingExistsAsync(key);
+                if (!exists)
+                {
+                    return NotFound($"Setting '{key}' not found");
+                }
+
+                await _settingsService.DeleteSettingAsync(key);
+                
+                _logger.LogInformation("Deleted setting {Key}", key);
                 return Ok(new { message = "Setting deleted successfully" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting setting with key {Key}", key);
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error deleting setting {Key}", key);
+                return StatusCode(500, "An error occurred while deleting the setting");
             }
         }
 
         /// <summary>
-        /// Retrieves scan configuration settings
+        /// Gets scan configuration settings
         /// </summary>
-        /// <returns>Scan configuration</returns>
+        /// <returns>Current scan configuration</returns>
         [HttpGet("scan/configuration")]
         public async Task<ActionResult<ScanConfiguration>> GetScanConfiguration()
         {
             try
             {
-                var config = await _systemSettingsService.GetScanConfigurationAsync();
+                var config = await _settingsService.GetScanConfigurationAsync();
                 return Ok(config);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving scan configuration");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "An error occurred while retrieving scan configuration");
             }
         }
 
         /// <summary>
         /// Updates scan configuration settings
         /// </summary>
-        /// <param name="config">The scan configuration to update</param>
-        /// <returns>Success response</returns>
+        /// <param name="config">New scan configuration</param>
+        /// <returns>Success status</returns>
         [HttpPut("scan/configuration")]
         public async Task<ActionResult> UpdateScanConfiguration([FromBody] ScanConfiguration config)
         {
             try
             {
-                await _systemSettingsService.UpdateScanConfigurationAsync(config);
+                if (config == null)
+                {
+                    return BadRequest("Configuration is required");
+                }
+
+                await _settingsService.UpdateScanConfigurationAsync(config);
+                
+                _logger.LogInformation("Updated scan configuration");
                 return Ok(new { message = "Scan configuration updated successfully" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating scan configuration");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "An error occurred while updating scan configuration");
             }
         }
 
         /// <summary>
-        /// Retrieves the current scan directory
+        /// Gets the current default scan directory
         /// </summary>
-        /// <returns>The scan directory path</returns>
+        /// <returns>Current scan directory path</returns>
         [HttpGet("scan/directory")]
         public async Task<ActionResult<string>> GetScanDirectory()
         {
             try
             {
-                var directory = await _systemSettingsService.GetScanDirectoryAsync();
+                var directory = await _settingsService.GetScanDirectoryAsync();
                 return Ok(directory);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving scan directory");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "An error occurred while retrieving scan directory");
             }
         }
 
         /// <summary>
-        /// Sets the scan directory
+        /// Sets the default scan directory
         /// </summary>
-        /// <param name="request">The directory path</param>
-        /// <returns>Success response</returns>
+        /// <param name="request">Directory path request</param>
+        /// <returns>Success status</returns>
         [HttpPut("scan/directory")]
         public async Task<ActionResult> SetScanDirectory([FromBody] SetDirectoryRequest request)
         {
             try
             {
-                await _systemSettingsService.SetScanDirectoryAsync(request.DirectoryPath);
+                if (string.IsNullOrEmpty(request.DirectoryPath))
+                {
+                    return BadRequest("Directory path is required");
+                }
+
+                if (!Directory.Exists(request.DirectoryPath))
+                {
+                    return BadRequest($"Directory does not exist: {request.DirectoryPath}");
+                }
+
+                await _settingsService.SetScanDirectoryAsync(request.DirectoryPath);
+                
+                _logger.LogInformation("Updated scan directory to {DirectoryPath}", request.DirectoryPath);
                 return Ok(new { message = "Scan directory updated successfully" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error setting scan directory");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error setting scan directory to {DirectoryPath}", request.DirectoryPath);
+                return StatusCode(500, "An error occurred while setting scan directory");
             }
         }
 
         /// <summary>
-        /// Checks if a setting exists
+        /// Resets the database and all settings
         /// </summary>
-        /// <param name="key">The setting key</param>
-        /// <returns>Boolean indicating if the setting exists</returns>
-        [HttpGet("{key}/exists")]
-        public async Task<ActionResult<bool>> SettingExists(string key)
+        /// <returns>Success message</returns>
+        [HttpPost("reset-database")]
+        public async Task<ActionResult> ResetDatabase()
         {
             try
             {
-                var exists = await _systemSettingsService.SettingExistsAsync(key);
-                return Ok(exists);
+                await _settingsService.ResetDatabaseAsync();
+                
+                _logger.LogWarning("Database has been reset - all data cleared");
+                return Ok(new { message = "Database has been reset successfully. All data has been cleared." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking if setting exists for key {Key}", key);
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error resetting database");
+                return StatusCode(500, "An error occurred while resetting the database");
+            }
+        }
+
+        /// <summary>
+        /// Deletes all local data (images and ROMs)
+        /// </summary>
+        /// <returns>Success message</returns>
+        [HttpPost("delete-local-data")]
+        public async Task<ActionResult> DeleteLocalData()
+        {
+            try
+            {
+                var deletedFiles = await _settingsService.DeleteLocalDataAsync();
+                
+                _logger.LogWarning("Local data deleted - {FileCount} files removed", deletedFiles);
+                return Ok(new { 
+                    message = $"Local data deleted successfully. {deletedFiles} files were removed.",
+                    deletedFiles = deletedFiles
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting local data");
+                return StatusCode(500, "An error occurred while deleting local data");
             }
         }
     }

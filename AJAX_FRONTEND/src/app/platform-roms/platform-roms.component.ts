@@ -2,10 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { ApiService, apiRoutes } from '../services/api.service';
-import { Rom, Platform } from '../models/rom.model';
+import { PlatformsService } from '../services/platforms.service';
+import { RomsService } from '../services/roms.service';
+import { FileUploadService } from '../services/file-upload.service';
+import { Rom, Platform, RomFilter } from '../models/rom.model';
 import { RomCardComponent } from '../rom-card/rom-card.component';
-import { mockPlatforms, mockRoms } from '../roms/roms-mockdata';
 
 @Component({
   selector: 'app-platform-roms',
@@ -31,7 +32,9 @@ export class PlatformRomsComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private apiService: ApiService
+    private platformsService: PlatformsService,
+    private romsService: RomsService,
+    private fileUploadService: FileUploadService
   ) {}
 
   ngOnInit(): void {
@@ -50,22 +53,15 @@ export class PlatformRomsComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    // ========================================
-    // SWITCHING BETWEEN TEST DATA AND API
-    // ========================================
-    
-    // FOR TEST DATA (current setup):
-    this.loadTestData();
-    
-    // FOR REAL API (when backend is ready):
-    // this.loadPlatform();
-    // this.loadRoms();
+    // Load platform and ROMs using the proper services
+    this.loadPlatform();
+    this.loadRoms();
   }
 
   loadPlatform(): void {
     if (!this.platformId) return;
 
-    this.apiService.get<Platform>(`${apiRoutes.PLATFORMS}/${this.platformId}`).subscribe({
+    this.platformsService.getPlatformById(this.platformId).subscribe({
       next: (platform) => {
         this.platform = platform;
       },
@@ -80,9 +76,17 @@ export class PlatformRomsComponent implements OnInit {
   loadRoms(): void {
     if (!this.platformId) return;
 
-    this.apiService.get<Rom[]>(`${apiRoutes.ROMS}?platformId=${this.platformId}`).subscribe({
-      next: (roms) => {
-        this.roms = roms;
+    const romFilter: RomFilter = {
+      platformId: this.platformId,
+      page: 1,
+      pageSize: 100,
+      sortBy: this.sortBy,
+      sortOrder: this.sortOrder
+    };
+
+    this.romsService.getRoms(romFilter).subscribe({
+      next: (result) => {
+        this.roms = result.items || [];
         this.applyFilters();
         this.loading = false;
       },
@@ -148,25 +152,11 @@ export class PlatformRomsComponent implements OnInit {
   }
 
   // ========================================
-  // TEST DATA METHOD - Remove when using real API
-  // ========================================
-  loadTestData(): void {
-    // Simulate API delay
-    setTimeout(() => {
-      // Find platform by ID
-      this.platform = mockPlatforms.find(p => p.id === this.platformId) || null;
-      
-      if (!this.platform) {
-        this.error = 'Platform not found';
-        this.loading = false;
-        return;
-      }
+  getPlatformLogoUrl(): string {
+    return this.fileUploadService.getPlatformLogoUrl(this.platform?.iconPath || '');
+  }
 
-      // Filter ROMs by platform
-      this.roms = mockRoms.filter(rom => rom.platformId === this.platformId);
-      
-      this.applyFilters();
-      this.loading = false;
-    }, 1000); // Simulate 1 second loading time
+  refreshData(): void {
+    this.loadPlatformAndRoms();
   }
 }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SystemSettingsService } from '../services/system-settings.service';
 import { NotificationService } from '../services/notification.service';
+import { ModalService } from '../services/modal.service';
 import { ScanConfiguration, SetSettingRequest } from '../models/rom.model';
 
 interface UserPreferences {
@@ -68,7 +69,8 @@ export class SettingsComponent implements OnInit {
 
   constructor(
     private systemSettingsService: SystemSettingsService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private modalService: ModalService
   ) { }
 
   ngOnInit(): void {
@@ -152,5 +154,83 @@ export class SettingsComponent implements OnInit {
   onFolderSelect(field: string): void {
     // TODO: Implement folder selection dialog
     console.log(`Opening folder selector for: ${field}`);
+  }
+
+  // Reset Operations
+  isResettingDatabase = false;
+  isDeletingLocalData = false;
+
+  /**
+   * Resets the database and all settings
+   */
+  resetDatabase(): void {
+    this.modalService.showConfirm(
+      'Reset Database',
+      'Are you sure you want to reset the database? This will permanently delete all platforms, ROMs, settings, and user data. This action cannot be undone.',
+      'Reset Database',
+      'Cancel'
+    ).subscribe(result => {
+      if (result.confirmed) {
+        this.isResettingDatabase = true;
+        
+        this.systemSettingsService.resetDatabase().subscribe({
+          next: (response) => {
+            this.isResettingDatabase = false;
+            this.notificationService.showPersistentSuccess(
+              'Database Reset Complete',
+              'The database has been successfully reset. All data has been cleared.'
+            );
+            
+            // Reload the page to reflect the reset
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          },
+          error: (error) => {
+            this.isResettingDatabase = false;
+            this.notificationService.showPersistentError(
+              'Reset Failed',
+              'Failed to reset the database. Please try again.'
+            );
+            console.error('Database reset error:', error);
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Deletes all local data (images and ROMs)
+   */
+  deleteLocalData(): void {
+    this.modalService.showConfirm(
+      'Delete Local Data',
+      'Are you sure you want to delete all local data? This will permanently delete all ROM files and images from the file system. This action cannot be undone.',
+      'Delete Data',
+      'Cancel'
+    ).subscribe(result => {
+      if (result.confirmed) {
+        this.isDeletingLocalData = true;
+        
+        this.systemSettingsService.deleteLocalData().subscribe({
+          next: (response) => {
+            this.isDeletingLocalData = false;
+            const deletedFiles = response.deletedFiles || 0;
+            this.notificationService.showPersistentSuccess(
+              'Local Data Deleted',
+              `Successfully deleted ${deletedFiles} files from the local file system.`
+            );
+          },
+          error: (error) => {
+            this.isDeletingLocalData = false;
+            this.notificationService.showPersistentError(
+              'Delete Failed',
+              'Failed to delete local data. Please try again.'
+            );
+            console.error('Local data deletion error:', error);
+          }
+        });
+      }
+    });
   }
 }

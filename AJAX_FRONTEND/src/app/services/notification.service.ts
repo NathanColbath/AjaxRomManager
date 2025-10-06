@@ -40,7 +40,7 @@ export class NotificationService {
     const newNotification = new Notification({
       id: this.generateId(),
       timestamp: new Date(),
-      duration: this.autoDismissDelay,
+      duration: notification.duration ?? this.autoDismissDelay,
       ...notification
     });
 
@@ -50,10 +50,14 @@ export class NotificationService {
 
     this.notificationsSubject.next(updatedNotifications);
 
-    // Auto-dismiss if duration is set
-    if (newNotification.duration && newNotification.duration > 0) {
+    // Auto-dismiss if duration is set and notification is not marked as persistent
+    if (newNotification.duration && newNotification.duration > 0 && !notification.persistent) {
       setTimeout(() => {
-        this.dismissNotification(newNotification.id);
+        // Only auto-dismiss if still unread
+        const currentNotification = this.notifications.find(n => n.id === newNotification.id);
+        if (currentNotification && !currentNotification.isRead) {
+          this.dismissNotification(newNotification.id);
+        }
       }, newNotification.duration);
     }
 
@@ -73,6 +77,19 @@ export class NotificationService {
   }
 
   /**
+   * Add a persistent success notification (won't auto-dismiss until read)
+   */
+  showPersistentSuccess(title: string, message: string): string {
+    return this.addNotification({
+      type: NotificationType.Success,
+      title,
+      message,
+      duration: 0,
+      persistent: true
+    });
+  }
+
+  /**
    * Add an error notification
    */
   showError(title: string, message: string, duration?: number): string {
@@ -81,6 +98,19 @@ export class NotificationService {
       title,
       message,
       duration: duration ?? (this.autoDismissDelay * 2) // Errors stay longer
+    });
+  }
+
+  /**
+   * Add a persistent error notification (won't auto-dismiss until read)
+   */
+  showPersistentError(title: string, message: string): string {
+    return this.addNotification({
+      type: NotificationType.Error,
+      title,
+      message,
+      duration: 0,
+      persistent: true
     });
   }
 
@@ -97,6 +127,19 @@ export class NotificationService {
   }
 
   /**
+   * Add a persistent warning notification (won't auto-dismiss until read)
+   */
+  showPersistentWarning(title: string, message: string): string {
+    return this.addNotification({
+      type: NotificationType.Warning,
+      title,
+      message,
+      duration: 0,
+      persistent: true
+    });
+  }
+
+  /**
    * Add an info notification
    */
   showInfo(title: string, message: string, duration?: number): string {
@@ -105,6 +148,19 @@ export class NotificationService {
       title,
       message,
       duration: duration ?? this.autoDismissDelay
+    });
+  }
+
+  /**
+   * Add a persistent info notification (won't auto-dismiss until read)
+   */
+  showPersistentInfo(title: string, message: string): string {
+    return this.addNotification({
+      type: NotificationType.Info,
+      title,
+      message,
+      duration: 0,
+      persistent: true
     });
   }
 

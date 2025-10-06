@@ -35,7 +35,7 @@ export class ScanningComponent implements OnInit, OnDestroy {
   platforms: Platform[] = [];
   
   // Current scan form
-  scanDirectory = '';
+  defaultScanDirectory = '';
   selectedPlatformId: number | undefined;
   scanName = '';
   isRecurring = false;
@@ -61,6 +61,10 @@ export class ScanningComponent implements OnInit, OnDestroy {
   activeTab: 'scan' | 'active' | 'history' | 'settings' = 'scan';
   showAdvancedOptions = false;
 
+  // Polling for when SignalR is not available
+  private refreshInterval: any;
+  private readonly REFRESH_INTERVAL_MS = 5000; // 5 seconds
+
   constructor(
     private scanningService: ScanningService,
     private signalRService: ScanningSignalRService,
@@ -79,23 +83,39 @@ export class ScanningComponent implements OnInit, OnDestroy {
     try {
       this.isLoading = true;
       
-      // Start SignalR connection
-      await this.signalRService.startConnection();
-      this.isConnected = true;
+      // Try to start SignalR connection, but don't fail if it doesn't work
+      try {
+        await this.signalRService.startConnection();
+        this.isConnected = true;
+        
+        // Join all scans group for notifications
+        await this.signalRService.joinAllScansGroup();
+        
+        // Setup event handlers
+        this.setupSignalREventHandlers();
+        
+        console.log('SignalR connection established successfully');
+      } catch (signalRError) {
+        console.warn('SignalR connection failed, continuing without real-time updates:', signalRError);
+        this.isConnected = false;
+        // Don't throw - continue without SignalR
+      }
       
-      // Join all scans group for notifications
-      await this.signalRService.joinAllScansGroup();
-      
-      // Setup event handlers
-      this.setupSignalREventHandlers();
-      
-      // Load initial data
+      // Load initial data regardless of SignalR status
       await Promise.all([
         this.loadScanConfiguration(),
+        this.loadDefaultDirectory(),
         this.loadPlatforms(),
         this.loadActiveScans(),
         this.loadScanHistory()
       ]);
+      
+      // Show a warning if SignalR failed but don't block the interface
+      if (!this.isConnected) {
+        this.error = 'Real-time updates unavailable. Scans will work but progress updates may be delayed. Please check your connection and refresh to retry.';
+        // Start periodic refresh when SignalR is not available
+        this.startPeriodicRefresh();
+      }
       
     } catch (error) {
       console.error('Failed to initialize scanning component:', error);
@@ -108,6 +128,9 @@ export class ScanningComponent implements OnInit, OnDestroy {
 
   private async cleanup() {
     try {
+      // Stop periodic refresh
+      this.stopPeriodicRefresh();
+      
       if (this.currentScan) {
         await this.signalRService.leaveScanGroup(this.currentScan.id!);
       }
@@ -175,15 +198,15 @@ export class ScanningComponent implements OnInit, OnDestroy {
 
   // Scan Management Methods
   async startScan() {
-    if (!this.scanDirectory.trim()) {
-      this.error = 'Please specify a directory path';
+    if (!this.defaultScanDirectory.trim()) {
+      this.error = 'No default scan directory configured. Please configure a default directory in settings.';
       return;
     }
 
     try {
       this.error = null;
       const request = new StartScanRequest({
-        directoryPath: this.scanDirectory,
+        directoryPath: this.defaultScanDirectory,
         platformId: this.selectedPlatformId,
         name: this.scanName || `Scan - ${new Date().toLocaleString()}`,
         options: {
@@ -192,15 +215,21 @@ export class ScanningComponent implements OnInit, OnDestroy {
           createMetadata: this.scanConfiguration.createMetadata,
           skipDuplicates: this.scanConfiguration.skipDuplicates,
           includeSubdirectories: this.scanConfiguration.includeSubdirectories,
-          maxFileSizeMB: this.scanConfiguration.maxFileSizeMB
+          maxFileSizeBytes: this.scanConfiguration.maxFileSizeMB * 1024 * 1024,
+          filePatterns: this.scanConfiguration.defaultFilePatterns,
+          excludePatterns: this.scanConfiguration.defaultExcludePatterns,
+          hashAlgorithm: this.scanConfiguration.hashAlgorithm,
+          scanType: 'Full'
         }
       });
 
       const scanJob = await this.scanningService.startScan(request).toPromise();
-      this.currentScan = scanJob;
+      this.currentScan = scanJob || null;
       
       // Join the specific scan group for detailed updates
-      await this.signalRService.joinScanGroup(scanJob.id!);
+      if (scanJob?.id) {
+        await this.signalRService.joinScanGroup(scanJob.id);
+      }
       
       // Switch to active scans tab
       this.activeTab = 'active';
@@ -212,15 +241,15 @@ export class ScanningComponent implements OnInit, OnDestroy {
   }
 
   async startRecurringScan() {
-    if (!this.scanDirectory.trim()) {
-      this.error = 'Please specify a directory path';
+    if (!this.defaultScanDirectory.trim()) {
+      this.error = 'No default scan directory configured. Please configure a default directory in settings.';
       return;
     }
 
     try {
       this.error = null;
       const request = new RecurringScanRequest({
-        directoryPath: this.scanDirectory,
+        directoryPath: this.defaultScanDirectory,
         platformId: this.selectedPlatformId,
         cronExpression: this.cronExpression,
         name: this.scanName || `Recurring Scan - ${new Date().toLocaleString()}`,
@@ -230,7 +259,11 @@ export class ScanningComponent implements OnInit, OnDestroy {
           createMetadata: this.scanConfiguration.createMetadata,
           skipDuplicates: this.scanConfiguration.skipDuplicates,
           includeSubdirectories: this.scanConfiguration.includeSubdirectories,
-          maxFileSizeMB: this.scanConfiguration.maxFileSizeMB
+          maxFileSizeBytes: this.scanConfiguration.maxFileSizeMB * 1024 * 1024,
+          filePatterns: this.scanConfiguration.defaultFilePatterns,
+          excludePatterns: this.scanConfiguration.defaultExcludePatterns,
+          hashAlgorithm: this.scanConfiguration.hashAlgorithm,
+          scanType: 'Full'
         }
       });
 
@@ -293,11 +326,20 @@ export class ScanningComponent implements OnInit, OnDestroy {
   // Data Loading Methods
   async loadScanConfiguration() {
     try {
-      this.scanConfiguration = await this.scanningService.getScanConfiguration().toPromise() || new ScanConfiguration();
+      this.scanConfiguration = await this.systemSettingsService.getScanConfiguration().toPromise() || new ScanConfiguration();
     } catch (error) {
       console.error('Failed to load scan configuration:', error);
       // Use default configuration if loading fails
       this.scanConfiguration = new ScanConfiguration();
+    }
+  }
+
+  async loadDefaultDirectory() {
+    try {
+      this.defaultScanDirectory = await this.systemSettingsService.getScanDirectory().toPromise() || '';
+    } catch (error) {
+      console.error('Failed to load default scan directory:', error);
+      this.defaultScanDirectory = '';
     }
   }
 
@@ -380,6 +422,10 @@ export class ScanningComponent implements OnInit, OnDestroy {
     return new Date(date).toLocaleString();
   }
 
+  getTotalPages(): number {
+    return Math.ceil(this.totalHistoryItems / this.pageSize);
+  }
+
   // UI Methods
   selectTab(tab: 'scan' | 'active' | 'history' | 'settings') {
     this.activeTab = tab;
@@ -393,6 +439,52 @@ export class ScanningComponent implements OnInit, OnDestroy {
     this.error = null;
   }
 
+  async retrySignalRConnection() {
+    try {
+      this.error = null;
+      await this.signalRService.startConnection();
+      this.isConnected = true;
+      
+      // Join all scans group for notifications
+      await this.signalRService.joinAllScansGroup();
+      
+      // Setup event handlers
+      this.setupSignalREventHandlers();
+      
+      console.log('SignalR connection re-established successfully');
+      
+      // Stop periodic refresh since we have real-time updates now
+      this.stopPeriodicRefresh();
+      
+    } catch (error) {
+      console.error('Failed to retry SignalR connection:', error);
+      this.error = 'Failed to connect to real-time updates. Please check your connection and try again.';
+      this.isConnected = false;
+      // Start periodic refresh as fallback
+      this.startPeriodicRefresh();
+    }
+  }
+
+  private startPeriodicRefresh() {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+    
+    this.refreshInterval = setInterval(() => {
+      if (!this.isConnected) {
+        this.loadActiveScans();
+        this.loadScanHistory();
+      }
+    }, this.REFRESH_INTERVAL_MS);
+  }
+
+  private stopPeriodicRefresh() {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
+  }
+
   clearMessages() {
     this.recentMessages = [];
   }
@@ -400,7 +492,7 @@ export class ScanningComponent implements OnInit, OnDestroy {
   // Configuration Methods
   async saveConfiguration() {
     try {
-      this.scanConfiguration = await this.scanningService.updateScanConfiguration(this.scanConfiguration).toPromise() || this.scanConfiguration;
+      this.scanConfiguration = await this.systemSettingsService.updateScanConfiguration(this.scanConfiguration).toPromise() || this.scanConfiguration;
       this.error = null;
     } catch (error) {
       console.error('Failed to save configuration:', error);
@@ -409,13 +501,13 @@ export class ScanningComponent implements OnInit, OnDestroy {
   }
 
   async setDefaultDirectory() {
-    if (!this.scanDirectory.trim()) {
+    if (!this.defaultScanDirectory.trim()) {
       this.error = 'Please specify a directory path';
       return;
     }
 
     try {
-      await this.scanningService.setScanDirectory(this.scanDirectory).toPromise();
+      await this.systemSettingsService.setScanDirectory({ directoryPath: this.defaultScanDirectory }).toPromise();
       this.error = null;
     } catch (error) {
       console.error('Failed to set default directory:', error);

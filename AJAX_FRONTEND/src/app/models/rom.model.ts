@@ -70,13 +70,32 @@ export class Platform {
 
   // Helper property to get extensions as array
   get extensionsList(): string[] {
+    // Debug logging
+    console.log(`Getting extensionsList for platform ${this.name}:`, {
+      extension: this.extension,
+      extensions: this.extensions
+    });
+    
     if (!this.extensions) {
       // Fallback to single extension for backward compatibility
-      return this.extension ? [this.extension] : [];
+      const fallback = this.extension ? [this.extension] : [];
+      console.log(`Using fallback extension:`, fallback);
+      return fallback;
     }
+    
     try {
-      return JSON.parse(this.extensions) || [];
-    } catch {
+      const parsed = JSON.parse(this.extensions);
+      const result = Array.isArray(parsed) ? parsed : [];
+      console.log(`Parsed extensions:`, result);
+      return result;
+    } catch (error) {
+      console.warn(`Failed to parse extensions JSON for platform ${this.name}:`, this.extensions, error);
+      // Try to treat as comma-separated string
+      if (typeof this.extensions === 'string') {
+        const split = this.extensions.split(',').map(ext => ext.trim()).filter(ext => ext.length > 0);
+        console.log(`Treated as comma-separated:`, split);
+        return split;
+      }
       return [];
     }
   }
@@ -362,6 +381,8 @@ export interface RomFilter {
   maxRating?: number;
   sortBy?: string;
   sortOrder?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface SystemFilter {
@@ -396,6 +417,7 @@ export class Notification {
   isRead: boolean = false;
   isDismissed: boolean = false;
   duration?: number; // Auto-dismiss after this many milliseconds
+  persistent?: boolean; // If true, won't auto-dismiss until marked as read
   actions?: NotificationAction[];
   data?: any; // Additional data for specific notification types
 

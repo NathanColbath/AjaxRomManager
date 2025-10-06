@@ -15,12 +15,14 @@ namespace AJAX_API.Services
         Task<IEnumerable<ScanJob>> GetActiveScansAsync();
         Task<PagedResult<ScanJob>> GetScanHistoryAsync(int? platformId = null, int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null);
         Task<ScanProgress> GetScanProgressAsync(int scanJobId);
-        Task<string> GetScanDirectoryAsync();
-        Task SetScanDirectoryAsync(string directoryPath);
-        Task<ScanConfiguration> GetScanConfigurationAsync();
-        Task UpdateScanConfigurationAsync(ScanConfiguration config);
+        // Scan configuration methods are handled by SystemSettingsService
         Task<bool> IsScanRunningAsync(int scanJobId);
         Task ProcessScanJobAsync(int scanJobId);
+        Task<bool> CancelScanAsync(int scanJobId);
+        Task<ScanJob?> RetryScanAsync(int scanJobId);
+        Task<bool> DeleteScanJobAsync(int scanJobId);
+        Task<IEnumerable<string>> GetScanLogsAsync(int scanJobId);
+        Task<object> GetScanStatisticsAsync();
     }
 
     public class FileScanningService : IFileScanningService
@@ -462,6 +464,181 @@ namespace AJAX_API.Services
             {
                 _logger.LogError(ex, "Error calculating hash for file {FilePath}", filePath);
                 return string.Empty;
+            }
+        }
+
+        public async Task<bool> CancelScanAsync(int scanJobId)
+        {
+            try
+            {
+                var scanJob = await _context.ScanJobs.FindAsync(scanJobId);
+                if (scanJob == null)
+                {
+                    return false;
+                }
+
+                if (scanJob.Status == "Running")
+                {
+                    // Cancel the running scan
+                    if (_runningScans.TryGetValue(scanJobId, out var cts))
+                    {
+                        cts.Cancel();
+                    }
+
+                    scanJob.Status = "Cancelled";
+                    scanJob.CompletedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+
+                    // Send notification
+                    await _notificationService.NotifyScanCancelledAsync(scanJobId, scanJob);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling scan job {ScanJobId}", scanJobId);
+                return false;
+            }
+        }
+
+        public async Task<ScanJob?> RetryScanAsync(int scanJobId)
+        {
+            try
+            {
+                var originalScanJob = await _context.ScanJobs.FindAsync(scanJobId);
+                if (originalScanJob == null || originalScanJob.Status != "Failed")
+                {
+                    return null;
+                }
+
+                // Create a new scan job based on the failed one
+                var retryScanJob = new ScanJob
+                {
+                    Name = $"Retry: {originalScanJob.Name}",
+                    ScanPath = originalScanJob.ScanPath,
+                    PlatformId = originalScanJob.PlatformId,
+                    Status = "Pending",
+                    IsRecurring = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.ScanJobs.Add(retryScanJob);
+                await _context.SaveChangesAsync();
+
+                // Start the retry scan
+                await ProcessScanJobAsync(retryScanJob.Id);
+
+                return retryScanJob;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrying scan job {ScanJobId}", scanJobId);
+                return null;
+            }
+        }
+
+        public async Task<bool> DeleteScanJobAsync(int scanJobId)
+        {
+            try
+            {
+                var scanJob = await _context.ScanJobs.FindAsync(scanJobId);
+                if (scanJob == null)
+                {
+                    return false;
+                }
+
+                // Don't delete running scans
+                if (scanJob.Status == "Running")
+                {
+                    return false;
+                }
+
+                _context.ScanJobs.Remove(scanJob);
+                await _context.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting scan job {ScanJobId}", scanJobId);
+                return false;
+            }
+        }
+
+        public async Task<IEnumerable<string>> GetScanLogsAsync(int scanJobId)
+        {
+            try
+            {
+                var scanJob = await _context.ScanJobs.FindAsync(scanJobId);
+                if (scanJob == null)
+                {
+                    throw new ArgumentException($"Scan job {scanJobId} not found");
+                }
+
+                // For now, return basic log information
+                // In a real implementation, you might want to store detailed logs
+                var logs = new List<string>
+                {
+                    $"Scan Job: {scanJob.Name}",
+                    $"Status: {scanJob.Status}",
+                    $"Created: {scanJob.CreatedAt}",
+                    $"Files Found: {scanJob.FilesFound}",
+                    $"Files Processed: {scanJob.FilesProcessed}",
+                    $"Errors: {scanJob.Errors}"
+                };
+
+                if (scanJob.StartedAt.HasValue)
+                {
+                    logs.Add($"Started: {scanJob.StartedAt}");
+                }
+
+                if (scanJob.CompletedAt.HasValue)
+                {
+                    logs.Add($"Completed: {scanJob.CompletedAt}");
+                }
+
+                return logs;
+            }
+            catch (ArgumentException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving scan logs for job {ScanJobId}", scanJobId);
+                throw new InvalidOperationException("Failed to retrieve scan logs");
+            }
+        }
+
+        public async Task<object> GetScanStatisticsAsync()
+        {
+            try
+            {
+                var totalScans = await _context.ScanJobs.CountAsync();
+                var completedScans = await _context.ScanJobs.CountAsync(s => s.Status == "Completed");
+                var failedScans = await _context.ScanJobs.CountAsync(s => s.Status == "Failed");
+                var runningScans = await _context.ScanJobs.CountAsync(s => s.Status == "Running");
+                var totalFilesFound = await _context.ScanJobs.SumAsync(s => s.FilesFound);
+                var totalFilesProcessed = await _context.ScanJobs.SumAsync(s => s.FilesProcessed);
+                var totalErrors = await _context.ScanJobs.SumAsync(s => s.Errors);
+
+                return new
+                {
+                    TotalScans = totalScans,
+                    CompletedScans = completedScans,
+                    FailedScans = failedScans,
+                    RunningScans = runningScans,
+                    TotalFilesFound = totalFilesFound,
+                    TotalFilesProcessed = totalFilesProcessed,
+                    TotalErrors = totalErrors,
+                    SuccessRate = totalScans > 0 ? (double)completedScans / totalScans * 100 : 0
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving scan statistics");
+                throw new InvalidOperationException("Failed to retrieve scan statistics");
             }
         }
     }

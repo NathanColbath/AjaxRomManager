@@ -7,11 +7,19 @@
           <i class="fas fa-compact-disc me-2"></i>
           ROM Collection
         </h2>
-        <div class="rom-stats">
-          <span class="badge bg-primary fs-6">
-            <i class="fas fa-archive me-1"></i>
-            {{getTotalRomCount()}} ROMs
-          </span>
+        <div class="d-flex align-items-center gap-3">
+          <div class="rom-stats">
+            <span class="badge bg-primary fs-6">
+              <i class="fas fa-archive me-1"></i>
+              {{getTotalRomCount()}} ROMs
+            </span>
+          </div>
+          <button type="button" 
+                  class="btn btn-success"
+                  routerLink="/roms/upload">
+            <i class="fas fa-upload me-2"></i>
+            Upload ROMs
+          </button>
         </div>
       </div>
     </div>
@@ -80,7 +88,7 @@
             <div class="card-body text-center">
               <!-- Platform Logo -->
               <div class="platform-logo mb-3">
-                <img *ngIf="platform.iconPath" [src]="platform.iconPath" 
+                <img *ngIf="platform.iconPath" [src]="getPlatformLogoUrl(platform)" 
                      [alt]="platform.name + ' logo'" 
                      class="img-fluid rounded" style="max-height: 80px; max-width: 80px; object-fit: cover;">
                 <div *ngIf="!platform.iconPath" class="platform-placeholder">

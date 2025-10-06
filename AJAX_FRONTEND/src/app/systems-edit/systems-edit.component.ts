@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Platform } from '../models/rom.model';
+import { PlatformsService } from '../services/platforms.service';
+import { FileUploadService } from '../services/file-upload.service';
 
 @Component({
   selector: 'app-systems-edit',
@@ -25,6 +27,8 @@ export class SystemsEditComponent implements OnInit {
   // File upload
   logoPreview: string | null = null;
   logoFile: File | null = null;
+  uploadProgress: number = 0;
+  isUploading: boolean = false;
   
   // Form validation
   formErrors: { [key: string]: string } = {};
@@ -37,7 +41,9 @@ export class SystemsEditComponent implements OnInit {
   
   constructor(
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private platformsService: PlatformsService,
+    private fileUploadService: FileUploadService
   ) {}
 
   ngOnInit(): void {
@@ -51,15 +57,37 @@ export class SystemsEditComponent implements OnInit {
     const platformId = this.route.snapshot.paramMap.get('id');
     
     if (platformId) {
-      // TODO: Replace with actual API call
-      // For now, simulate loading with mock data
-      setTimeout(() => {
-        this.platform = this.getMockPlatform(parseInt(platformId));
-        this.originalPlatform = { ...this.platform } as Platform;
-        this.extensionsArray = [...(this.platform as any).extensionsList];
-        this.validateForm();
-        this.isLoading = false;
-      }, 500);
+      this.platformsService.getPlatformById(parseInt(platformId)).subscribe({
+        next: (platform) => {
+          this.platform = platform;
+          this.originalPlatform = new Platform(platform);
+          
+          // Parse extensions from JSON string
+          if (platform.extensions) {
+            try {
+              this.extensionsArray = JSON.parse(platform.extensions);
+            } catch {
+              this.extensionsArray = platform.extensions.split(',').map(ext => ext.trim());
+            }
+          } else {
+            this.extensionsArray = [''];
+          }
+          
+          // Set logo preview if exists
+          if (platform.iconPath) {
+            this.logoPreview = this.fileUploadService.getPlatformLogoUrl(platform.iconPath);
+          }
+          
+          this.validateForm();
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading platform:', error);
+          this.isLoading = false;
+          alert('Failed to load platform. Redirecting to platform management.');
+          this.router.navigate(['/systems-managment']);
+        }
+      });
     } else {
       // No ID provided, redirect to management
       this.router.navigate(['/systems-managment']);
@@ -172,28 +200,23 @@ export class SystemsEditComponent implements OnInit {
   onLogoSelected(event: any): void {
     const file = event.target.files[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
-        return;
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
+      // Validate file
+      const validation = this.fileUploadService.validateImageFile(file);
+      if (!validation.isValid) {
+        alert(validation.error);
         return;
       }
       
       this.logoFile = file;
       
       // Create preview
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.logoPreview = e.target.result;
-        this.platform.iconPath = e.target.result; // Store as base64 for now
+      this.fileUploadService.createPreviewUrl(file).then(previewUrl => {
+        this.logoPreview = previewUrl;
         this.onFormChange();
-      };
-      reader.readAsDataURL(file);
+      }).catch(error => {
+        console.error('Error creating preview:', error);
+        alert('Failed to create preview');
+      });
     }
   }
 
@@ -231,27 +254,57 @@ export class SystemsEditComponent implements OnInit {
     this.isSaving = true;
     
     // Update platform with current extensions
-    (this.platform as any).extensionsList = this.extensionsArray.filter(ext => ext.trim() !== '');
+    this.platform.extensions = JSON.stringify(this.extensionsArray.filter(ext => ext.trim() !== ''));
     
-    const platformData = {
-      ...this.platform
-    };
+    // If there's a new logo file, upload it first
+    if (this.logoFile) {
+      this.uploadLogoAndSave();
+    } else {
+      this.updatePlatform();
+    }
+  }
+
+  private uploadLogoAndSave(): void {
+    this.isUploading = true;
+    this.uploadProgress = 0;
     
-    // TODO: Replace with actual API call
-    setTimeout(() => {
-      console.log('Saving platform:', platformData);
-      
-      // Simulate API success
-      this.originalPlatform = { ...this.platform } as Platform;
-      this.hasUnsavedChanges = false;
-      this.isSaving = false;
-      
-      // Show success message (you could implement a toast service)
-      alert('Platform saved successfully!');
-      
-      // Navigate back to management
-      this.router.navigate(['/systems-managment']);
-    }, 1000);
+    this.fileUploadService.uploadPlatformLogoWithProgress(this.logoFile!, this.platform.id).subscribe({
+      next: (response) => {
+        if (typeof response === 'object' && 'percentage' in response) {
+          // Progress update
+          this.uploadProgress = response.percentage;
+        } else if (typeof response === 'object' && 'filePath' in response) {
+          // Upload complete
+          this.platform.iconPath = response.filePath;
+          this.isUploading = false;
+          this.updatePlatform();
+        }
+      },
+      error: (error) => {
+        console.error('Error uploading logo:', error);
+        this.isUploading = false;
+        alert('Failed to upload logo. Please try again.');
+        this.isSaving = false;
+      }
+    });
+  }
+
+  private updatePlatform(): void {
+    this.platformsService.updatePlatform(this.platform.id!, this.platform).subscribe({
+      next: (updatedPlatform) => {
+        this.originalPlatform = new Platform(updatedPlatform);
+        this.hasUnsavedChanges = false;
+        this.isSaving = false;
+        
+        alert('Platform saved successfully!');
+        this.router.navigate(['/systems-managment']);
+      },
+      error: (error) => {
+        console.error('Error updating platform:', error);
+        this.isSaving = false;
+        alert('Failed to save platform. Please try again.');
+      }
+    });
   }
 
   cancelEdit(): void {
@@ -266,18 +319,44 @@ export class SystemsEditComponent implements OnInit {
 
   deletePlatform(): void {
     if (confirm(`Are you sure you want to delete "${this.platform.name}"? This action cannot be undone.`)) {
-      // TODO: Replace with actual API call
-      console.log('Deleting platform:', this.platform);
+      this.isSaving = true;
       
-      // Simulate API success
-      alert('Platform deleted successfully!');
-      this.router.navigate(['/systems-managment']);
+      // Delete logo file if it exists
+      if (this.platform.iconPath) {
+        this.fileUploadService.deletePlatformLogo(this.platform.iconPath).subscribe({
+          next: () => {
+            this.deletePlatformFromDatabase();
+          },
+          error: (error) => {
+            console.error('Error deleting logo:', error);
+            // Continue with platform deletion even if logo deletion fails
+            this.deletePlatformFromDatabase();
+          }
+        });
+      } else {
+        this.deletePlatformFromDatabase();
+      }
     }
   }
 
+  private deletePlatformFromDatabase(): void {
+    this.platformsService.deletePlatform(this.platform.id!).subscribe({
+      next: () => {
+        this.isSaving = false;
+        alert('Platform deleted successfully!');
+        this.router.navigate(['/systems-managment']);
+      },
+      error: (error) => {
+        console.error('Error deleting platform:', error);
+        this.isSaving = false;
+        alert('Failed to delete platform. Please try again.');
+      }
+    });
+  }
+
   resetForm(): void {
-    this.platform = { ...this.originalPlatform } as Platform;
-    this.extensionsArray = [...(this.platform as any).extensionsList];
+    this.platform = new Platform(this.originalPlatform);
+    this.extensionsArray = [...this.extensionsArray];
     this.logoPreview = this.platform.iconPath || null;
     this.logoFile = null;
     this.formErrors = {};
