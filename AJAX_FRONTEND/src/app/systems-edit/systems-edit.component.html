@@ -1,0 +1,316 @@
+<div class="container-fluid mt-4 px-4">
+  <!-- Breadcrumb Navigation -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a routerLink="/systems-managment">
+          <i class="fas fa-desktop me-1"></i>
+          Platforms
+        </a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">
+        Edit Platform
+      </li>
+    </ol>
+  </nav>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-muted">Loading platform data...</p>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!isLoading" class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+          <i class="fas fa-edit me-2"></i>
+          Edit Platform
+        </h2>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-danger" 
+                  (click)="deletePlatform()" 
+                  [disabled]="isSaving">
+            <i class="fas fa-trash me-1"></i>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!isLoading" class="row">
+    <!-- Edit Form -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-desktop me-2"></i>
+            Platform Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <form (ngModelChange)="onFormChange()" ngModel>
+            <!-- Platform Name -->
+            <div class="mb-3">
+              <label for="platformName" class="form-label">
+                Platform Name *
+                <span *ngIf="hasFieldError('name')" class="text-danger ms-2">
+                  <i class="fas fa-exclamation-circle"></i>
+                </span>
+              </label>
+              <input type="text" 
+                     class="form-control" 
+                     [class.is-invalid]="hasFieldError('name')"
+                     id="platformName" 
+                     [(ngModel)]="platform.name" 
+                     name="platformName"
+                     placeholder="e.g., Nintendo Entertainment System" 
+                     maxlength="100"
+                     required>
+              <div *ngIf="hasFieldError('name')" class="invalid-feedback">
+                {{ getFieldError('name') }}
+              </div>
+              <div class="form-text">
+                Enter the official name of the gaming platform
+                <span class="text-muted ms-2">
+                  ({{ platform.name?.length || 0 }}/100 characters)
+                </span>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+              <label for="platformDescription" class="form-label">Description</label>
+              <textarea class="form-control" 
+                        id="platformDescription" 
+                        [(ngModel)]="platform.description" 
+                        name="platformDescription"
+                        rows="3" 
+                        placeholder="Brief description of the platform..."></textarea>
+              <div class="form-text">Optional description of the platform</div>
+            </div>
+
+            <!-- Platform Logo -->
+            <div class="mb-3">
+              <label for="platformLogo" class="form-label">Platform Logo</label>
+              <div class="input-group">
+                <input type="file" 
+                       class="form-control" 
+                       id="platformLogo" 
+                       accept="image/*" 
+                       (change)="onLogoSelected($event)"
+                       [disabled]="isUploading">
+                <button class="btn btn-outline-secondary" type="button" 
+                        (click)="clearLogo()"
+                        [disabled]="isUploading">
+                  <i class="fas fa-times"></i> Clear
+                </button>
+              </div>
+              
+              <!-- Upload Progress -->
+              <div *ngIf="isUploading" class="mt-2">
+                <div class="progress">
+                  <div class="progress-bar" 
+                       [style.width.%]="uploadProgress"
+                       role="progressbar" 
+                       [attr.aria-valuenow]="uploadProgress" 
+                       aria-valuemin="0" 
+                       aria-valuemax="100">
+                    {{ uploadProgress }}%
+                  </div>
+                </div>
+                <small class="text-muted">Uploading logo...</small>
+              </div>
+              
+              <div class="form-text">Optional logo image for the platform (PNG, JPG, GIF, WebP - max 5MB)</div>
+            </div>
+
+
+            <!-- Supported Extensions -->
+            <div class="mb-3">
+              <label for="supportedExtensions" class="form-label">
+                Supported File Extensions *
+                <span *ngIf="hasFieldError('extensions')" class="text-danger ms-2">
+                  <i class="fas fa-exclamation-circle"></i>
+                </span>
+              </label>
+              <div class="extensions-container">
+                <div class="input-group mb-2" *ngFor="let extension of extensionsArray; let i = index; trackBy: trackByExtension">
+                  <span class="input-group-text">.</span>
+                  <input type="text" 
+                         class="form-control" 
+                         [class.is-invalid]="hasFieldError('extension' + i)"
+                         [(ngModel)]="extensionsArray[i]" 
+                         name="extension{{i}}"
+                         placeholder="nes" 
+                         maxlength="10"
+                         pattern="[a-zA-Z0-9]+"
+                         required>
+                  <button class="btn btn-outline-danger" type="button" 
+                          (click)="removeExtension(i)" 
+                          [disabled]="extensionsArray.length <= 1">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <div *ngIf="hasFieldError('extensions')" class="invalid-feedback d-block">
+                  {{ getFieldError('extensions') }}
+                </div>
+                <div *ngFor="let extension of extensionsArray; let i = index">
+                  <div *ngIf="hasFieldError('extension' + i)" class="invalid-feedback d-block">
+                    {{ getFieldError('extension' + i) }}
+                  </div>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" 
+                        (click)="addExtension()">
+                  <i class="fas fa-plus me-1"></i>
+                  Add Extension
+                </button>
+              </div>
+              <div class="form-text">File extensions supported by this platform (without the dot)</div>
+            </div>
+
+            <!-- Platform Status -->
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" 
+                       type="checkbox" 
+                       id="isActive" 
+                       [(ngModel)]="platform.isActive" 
+                       name="isActive">
+                <label class="form-check-label" for="isActive">
+                  Platform is Active
+                </label>
+              </div>
+              <div class="form-text">
+                Inactive platforms won't appear in scan operations
+              </div>
+            </div>
+
+            <!-- Unsaved Changes Warning -->
+            <div *ngIf="hasUnsavedChanges" class="alert alert-warning" role="alert">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              You have unsaved changes. Don't forget to save your work!
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Panel -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-eye me-2"></i>
+            Preview
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="platform-preview">
+            <div class="platform-icon mb-3 text-center">
+              <img *ngIf="logoPreview" 
+                   [src]="logoPreview" 
+                   alt="Platform Icon" 
+                   class="img-fluid rounded" 
+                   style="max-height: 80px;">
+              <div *ngIf="!logoPreview" class="platform-placeholder">
+                <i class="fas fa-desktop fa-3x text-muted"></i>
+              </div>
+            </div>
+            <h6 class="platform-name text-center">{{ platform.name || 'Platform Name' }}</h6>
+            <div class="platform-extensions text-center mb-2">
+              <span class="badge bg-secondary me-1" 
+                    *ngFor="let ext of extensionsArray">
+                .{{ ext || 'ext' }}
+              </span>
+            </div>
+            <div class="platform-status text-center mb-3">
+              <span class="badge" 
+                    [class]="platform.isActive ? 'bg-success' : 'bg-secondary'">
+                {{ platform.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+            <div class="platform-details">
+              <div class="row text-center small text-muted">
+                <div class="col-6">
+                  <div class="fw-bold">Created</div>
+                  <div>{{ platform.createdAt | date:'short' }}</div>
+                </div>
+                <div class="col-6">
+                  <div class="fw-bold">ID</div>
+                  <div>{{ platform.id || 'New' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Status Card -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>
+            Form Status
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="form-status">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span>Form Valid:</span>
+              <span class="badge" [class]="isFormValid ? 'bg-success' : 'bg-danger'">
+                {{ isFormValid ? 'Yes' : 'No' }}
+              </span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span>Unsaved Changes:</span>
+              <span class="badge" [class]="hasUnsavedChanges ? 'bg-warning' : 'bg-success'">
+                {{ hasUnsavedChanges ? 'Yes' : 'No' }}
+              </span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span>Errors:</span>
+              <span class="badge" [class]="Object.keys(formErrors).length > 0 ? 'bg-danger' : 'bg-success'">
+                {{ Object.keys(formErrors).length }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div *ngIf="!isLoading" class="row mt-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" 
+                class="btn btn-outline-secondary" 
+                (click)="resetForm()"
+                [disabled]="isSaving">
+          <i class="fas fa-undo me-1"></i>
+          Reset
+        </button>
+        <button type="button" 
+                class="btn btn-outline-secondary" 
+                (click)="cancelEdit()"
+                [disabled]="isSaving">
+          <i class="fas fa-times me-1"></i>
+          Cancel
+        </button>
+        <button type="button" 
+                class="btn btn-primary" 
+                (click)="savePlatform()" 
+                [disabled]="!isFormValid || isSaving || isUploading">
+          <span *ngIf="isSaving || isUploading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+          <i *ngIf="!isSaving && !isUploading" class="fas fa-save me-1"></i>
+          {{ isUploading ? 'Uploading...' : (isSaving ? 'Saving...' : 'Save Platform') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

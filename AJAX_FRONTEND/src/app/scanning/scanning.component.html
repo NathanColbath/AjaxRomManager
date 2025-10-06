@@ -1,0 +1,485 @@
+<div class="scanning-container">
+  <!-- Header -->
+  <div class="scanning-header">
+    <h1>
+      <i class="fas fa-search"></i>
+      ROM Scanning
+    </h1>
+    
+    <!-- Connection Status -->
+    <div class="connection-status" [ngClass]="isConnected ? 'connected' : 'disconnected'">
+      <i class="fas fa-circle"></i>
+      {{ isConnected ? 'Connected' : 'Disconnected' }}
+      <button *ngIf="!isConnected" class="btn-retry" (click)="retrySignalRConnection()" title="Retry connection">
+        <i class="fas fa-sync"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Alert -->
+  <div *ngIf="error" class="alert" [ngClass]="error.includes('Real-time updates unavailable') ? 'alert-warning' : 'alert-error'">
+    <i class="fas" [class.fa-exclamation-triangle]="!error.includes('Real-time updates unavailable')" [class.fa-info-circle]="error.includes('Real-time updates unavailable')"></i>
+    {{ error }}
+    <button class="btn-close" (click)="clearError()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div *ngIf="isLoading" class="loading-spinner">
+    <i class="fas fa-spinner fa-spin"></i>
+    Loading scanning interface...
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!isLoading" class="scanning-content">
+    
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button 
+        class="nav-tab" 
+        [class.active]="activeTab === 'scan'"
+        (click)="selectTab('scan')">
+        <i class="fas fa-play"></i>
+        Start Scan
+      </button>
+      <button 
+        class="nav-tab" 
+        [class.active]="activeTab === 'active'"
+        (click)="selectTab('active')">
+        <i class="fas fa-running"></i>
+        Active Scans
+        <span *ngIf="activeScans.length > 0" class="badge">{{ activeScans.length }}</span>
+      </button>
+      <button 
+        class="nav-tab" 
+        [class.active]="activeTab === 'history'"
+        (click)="selectTab('history')">
+        <i class="fas fa-history"></i>
+        History
+      </button>
+      <button 
+        class="nav-tab" 
+        [class.active]="activeTab === 'settings'"
+        (click)="selectTab('settings')">
+        <i class="fas fa-cog"></i>
+        Settings
+      </button>
+    </div>
+
+    <!-- Start Scan Tab -->
+    <div *ngIf="activeTab === 'scan'" class="tab-content">
+      <div class="scan-form">
+        <h2>Start New Scan</h2>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="defaultScanDirectory">Default Scan Directory</label>
+            <div class="directory-display">
+              <i class="fas fa-folder"></i>
+              <span class="directory-path">{{ defaultScanDirectory || 'No directory configured' }}</span>
+            </div>
+            <small class="form-help">Configure the default directory in the Settings tab</small>
+          </div>
+
+          <div class="form-group">
+            <label for="selectedPlatform">Platform (Optional)</label>
+            <select 
+              id="selectedPlatform"
+              [(ngModel)]="selectedPlatformId" 
+              class="form-control">
+              <option value="">Auto-detect platform</option>
+              <option *ngFor="let platform of platforms" [value]="platform.id">
+                {{ platform.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="scanName">Scan Name (Optional)</label>
+            <input 
+              id="scanName"
+              type="text" 
+              [(ngModel)]="scanName" 
+              placeholder="Custom scan name"
+              class="form-control">
+          </div>
+        </div>
+
+        <!-- Advanced Options -->
+        <div class="advanced-options">
+          <button 
+            class="btn btn-link" 
+            (click)="toggleAdvancedOptions()">
+            <i class="fas" [class.fa-chevron-down]="!showAdvancedOptions" [class.fa-chevron-up]="showAdvancedOptions"></i>
+            Advanced Options
+          </button>
+
+          <div *ngIf="showAdvancedOptions" class="advanced-content">
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="scanConfiguration.recursive">
+                <span class="checkmark"></span>
+                Scan subdirectories recursively
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="scanConfiguration.autoDetectPlatform">
+                <span class="checkmark"></span>
+                Auto-detect platform from file extensions
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="scanConfiguration.createMetadata">
+                <span class="checkmark"></span>
+                Create metadata for ROMs
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="scanConfiguration.skipDuplicates">
+                <span class="checkmark"></span>
+                Skip duplicate files
+              </label>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="maxFileSize">Max File Size (MB)</label>
+                <input 
+                  id="maxFileSize"
+                  type="number" 
+                  [(ngModel)]="scanConfiguration.maxFileSizeMB" 
+                  min="1"
+                  class="form-control">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recurring Scan Options -->
+        <div class="recurring-options">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="isRecurring">
+            <span class="checkmark"></span>
+            Schedule as recurring scan
+          </label>
+
+          <div *ngIf="isRecurring" class="recurring-content">
+            <div class="form-group">
+              <label for="cronExpression">Schedule (Cron Expression)</label>
+              <input 
+                id="cronExpression"
+                type="text" 
+                [(ngModel)]="cronExpression" 
+                placeholder="0 2 * * * (Daily at 2 AM)"
+                class="form-control">
+              <small class="form-help">Use standard cron format. Example: 0 2 * * * for daily at 2 AM</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button 
+            (click)="isRecurring ? startRecurringScan() : startScan()" 
+            [disabled]="!defaultScanDirectory.trim()"
+            class="btn btn-primary btn-large">
+            <i class="fas" [class.fa-play]="!isRecurring" [class.fa-calendar]="isRecurring"></i>
+            {{ isRecurring ? 'Schedule Recurring Scan' : 'Start Scan' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Messages -->
+      <div *ngIf="showMessages && recentMessages.length > 0" class="recent-messages">
+        <div class="messages-header">
+          <h3>
+            <i class="fas fa-bell"></i>
+            Recent Activity
+          </h3>
+          <button class="btn btn-link btn-sm" (click)="clearMessages()">
+            <i class="fas fa-trash"></i>
+            Clear
+          </button>
+        </div>
+        
+        <div class="messages-list">
+          <div 
+            *ngFor="let message of recentMessages.slice(0, 5)" 
+            class="message-item" 
+            [ngClass]="getScanStatusClass(message.status)">
+            <div class="message-time">{{ formatDate(message.timestamp) }}</div>
+            <div class="message-content">{{ message.message || message.status }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Scans Tab -->
+    <div *ngIf="activeTab === 'active'" class="tab-content">
+      <div class="active-scans-header">
+        <h2>Active Scans</h2>
+        <button class="btn btn-outline-primary" (click)="refreshData()">
+          <i class="fas fa-sync"></i>
+          Refresh
+        </button>
+      </div>
+
+      <div *ngIf="activeScans.length === 0" class="empty-state">
+        <i class="fas fa-search"></i>
+        <h3>No Active Scans</h3>
+        <p>There are currently no active scans running.</p>
+        <button class="btn btn-primary" (click)="selectTab('scan')">
+          <i class="fas fa-plus"></i>
+          Start a New Scan
+        </button>
+      </div>
+
+      <div *ngFor="let scan of activeScans" class="scan-card active">
+        <div class="scan-header">
+          <div class="scan-info">
+            <h3>{{ scan.name || 'Unnamed Scan' }}</h3>
+            <div class="scan-path">{{ scan.scanPath }}</div>
+          </div>
+          <div class="scan-status" [ngClass]="getScanStatusClass(scan.status)">
+            {{ scan.status }}
+          </div>
+        </div>
+
+        <div class="scan-progress">
+          <div class="progress-bar">
+            <div 
+              class="progress-fill" 
+              [style.width.%]="getProgressPercentage(scan)">
+            </div>
+          </div>
+          <div class="progress-text">
+            {{ getProgressPercentage(scan) }}% Complete
+          </div>
+        </div>
+
+        <div class="scan-stats">
+          <div class="stat-item">
+            <span class="stat-label">Files Found:</span>
+            <span class="stat-value">{{ scan.filesFound }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Processed:</span>
+            <span class="stat-value">{{ scan.filesProcessed }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Added:</span>
+            <span class="stat-value">{{ scan.filesProcessed - scan.errors }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Errors:</span>
+            <span class="stat-value error">{{ scan.errors }}</span>
+          </div>
+        </div>
+
+        <div class="scan-actions">
+          <button 
+            (click)="stopScan(scan.id!)" 
+            class="btn btn-danger btn-sm">
+            <i class="fas fa-stop"></i>
+            Stop
+          </button>
+          <button 
+            (click)="cancelScan(scan.id!)" 
+            class="btn btn-warning btn-sm">
+            <i class="fas fa-ban"></i>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Tab -->
+    <div *ngIf="activeTab === 'history'" class="tab-content">
+      <div class="history-header">
+        <h2>Scan History</h2>
+        <div class="history-controls">
+          <button class="btn btn-outline-primary" (click)="refreshData()">
+            <i class="fas fa-sync"></i>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="scanHistory.length === 0" class="empty-state">
+        <i class="fas fa-history"></i>
+        <h3>No Scan History</h3>
+        <p>No scans have been performed yet.</p>
+      </div>
+
+      <div *ngFor="let scan of scanHistory" class="scan-card">
+        <div class="scan-header">
+          <div class="scan-info">
+            <h3>{{ scan.name || 'Unnamed Scan' }}</h3>
+            <div class="scan-path">{{ scan.scanPath }}</div>
+            <div class="scan-dates">
+              Started: {{ formatDate(scan.createdAt) }}
+              <span *ngIf="scan.completedAt">
+                • Completed: {{ formatDate(scan.completedAt) }}
+              </span>
+            </div>
+          </div>
+          <div class="scan-status" [ngClass]="getScanStatusClass(scan.status)">
+            {{ scan.status }}
+          </div>
+        </div>
+
+        <div class="scan-stats">
+          <div class="stat-item">
+            <span class="stat-label">Files Found:</span>
+            <span class="stat-value">{{ scan.filesFound }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Processed:</span>
+            <span class="stat-value">{{ scan.filesProcessed }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Added:</span>
+            <span class="stat-value">{{ scan.filesProcessed - scan.errors }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Errors:</span>
+            <span class="stat-value error">{{ scan.errors }}</span>
+          </div>
+        </div>
+
+        <div class="scan-actions">
+          <button 
+            *ngIf="scan.status === 'Failed'" 
+            (click)="retryScan(scan.id!)" 
+            class="btn btn-primary btn-sm">
+            <i class="fas fa-redo"></i>
+            Retry
+          </button>
+          <button 
+            (click)="deleteScan(scan.id!)" 
+            class="btn btn-danger btn-sm">
+            <i class="fas fa-trash"></i>
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div *ngIf="totalHistoryItems > pageSize" class="pagination">
+        <button 
+          (click)="loadPreviousPage()" 
+          [disabled]="currentPage === 1"
+          class="btn btn-outline-primary">
+          <i class="fas fa-chevron-left"></i>
+          Previous
+        </button>
+        
+        <span class="page-info">
+          Page {{ currentPage }} of {{ getTotalPages() }}
+          ({{ totalHistoryItems }} total)
+        </span>
+        
+        <button 
+          (click)="loadNextPage()" 
+          [disabled]="currentPage * pageSize >= totalHistoryItems"
+          class="btn btn-outline-primary">
+          Next
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div *ngIf="activeTab === 'settings'" class="tab-content">
+      <div class="settings-form">
+        <h2>Scan Configuration</h2>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="defaultDirectory">Default Directory</label>
+            <input 
+              id="defaultDirectory"
+              type="text" 
+              [(ngModel)]="scanConfiguration.defaultDirectory" 
+              placeholder="C:\Roms"
+              class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label for="progressUpdateInterval">Progress Update Interval (seconds)</label>
+            <input 
+              id="progressUpdateInterval"
+              type="number" 
+              [(ngModel)]="scanConfiguration.progressUpdateIntervalSeconds" 
+              min="1"
+              max="60"
+              class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label for="maxConcurrentScans">Max Concurrent Scans</label>
+            <input 
+              id="maxConcurrentScans"
+              type="number" 
+              [(ngModel)]="scanConfiguration.maxConcurrentScans" 
+              min="1"
+              max="10"
+              class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label for="hashAlgorithm">Hash Algorithm</label>
+            <select 
+              id="hashAlgorithm"
+              [(ngModel)]="scanConfiguration.hashAlgorithm" 
+              class="form-control">
+              <option value="MD5">MD5</option>
+              <option value="SHA1">SHA1</option>
+              <option value="SHA256">SHA256</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="scanConfiguration.enableBackgroundScanning">
+            <span class="checkmark"></span>
+            Enable background scanning
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="scanConfiguration.recursive">
+            <span class="checkmark"></span>
+            Scan subdirectories recursively (default)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="scanConfiguration.autoDetectPlatform">
+            <span class="checkmark"></span>
+            Auto-detect platform from file extensions (default)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="scanConfiguration.createMetadata">
+            <span class="checkmark"></span>
+            Create metadata for ROMs (default)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="scanConfiguration.skipDuplicates">
+            <span class="checkmark"></span>
+            Skip duplicate files (default)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="scanConfiguration.includeSubdirectories">
+            <span class="checkmark"></span>
+            Include subdirectories (default)
+          </label>
+        </div>
+
+        <div class="settings-actions">
+          <button 
+            (click)="saveConfiguration()" 
+            class="btn btn-primary">
+            <i class="fas fa-save"></i>
+            Save Configuration
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

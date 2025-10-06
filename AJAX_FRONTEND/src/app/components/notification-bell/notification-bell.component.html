@@ -1,0 +1,127 @@
+<div class="notification-bell position-relative">
+  <!-- Notification Bell Icon -->
+  <button 
+    class="btn btn-link nav-link position-relative" 
+    type="button" 
+    (click)="toggleDropdown()"
+    [class.active]="isDropdownOpen"
+    title="Notifications">
+    <i class="fas fa-bell"></i>
+    <!-- Unread Count Badge -->
+    <span 
+      *ngIf="unreadCount > 0" 
+      class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge">
+      {{ unreadCount > 99 ? '99+' : unreadCount }}
+    </span>
+  </button>
+
+  <!-- Dropdown Menu -->
+  <div 
+    *ngIf="isDropdownOpen" 
+    class="notification-dropdown dropdown-menu show"
+    [style.right.px]="0"
+    [style.left.auto]="true">
+    
+    <!-- Dropdown Header -->
+    <div class="dropdown-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0">Notifications</h6>
+      <div class="dropdown-actions">
+        <button 
+          *ngIf="notifications.length > 0" 
+          class="btn btn-sm btn-outline-secondary" 
+          (click)="markAllAsRead()"
+          title="Mark all as read">
+          <i class="fas fa-check"></i>
+        </button>
+        <button 
+          *ngIf="notifications.length > 0" 
+          class="btn btn-sm btn-outline-secondary ms-1" 
+          (click)="dismissAll()"
+          title="Dismiss all">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="dropdown-divider"></div>
+
+    <!-- Notifications List -->
+    <div class="notification-list" *ngIf="notifications.length > 0; else noNotifications">
+      <div 
+        *ngFor="let notification of notifications; trackBy: trackByNotificationId" 
+        class="notification-item"
+        [class.unread]="!notification.isRead">
+        
+        <!-- Notification Content -->
+        <div class="d-flex align-items-start">
+          <!-- Icon -->
+          <div class="notification-icon me-2">
+            <i [class]="getNotificationIcon(notification.type)" 
+               [ngClass]="getNotificationClass(notification.type)"></i>
+          </div>
+          
+          <!-- Content -->
+          <div class="notification-content flex-grow-1">
+            <div class="notification-title">{{ notification.title }}</div>
+            <div class="notification-message">{{ notification.message }}</div>
+            
+            <!-- Progress Bar for Scan Progress -->
+            <div *ngIf="notification.type === NotificationType.ScanProgress" class="mt-2">
+              <div class="progress" style="height: 4px;">
+                <div 
+                  class="progress-bar bg-primary" 
+                  [style.width.%]="getProgressBarWidth(notification)"
+                  role="progressbar">
+                </div>
+              </div>
+              <small class="text-muted">
+                {{ notification.data?.progress ? Math.round(notification.data.progress) : 0 }}%
+              </small>
+            </div>
+            
+            <!-- Actions -->
+            <div *ngIf="notification.actions && notification.actions.length > 0" class="notification-actions mt-2">
+              <button 
+                *ngFor="let action of notification.actions; let i = index"
+                class="btn btn-sm me-1"
+                [ngClass]="'btn-' + (action.style || 'primary')"
+                (click)="executeAction(notification, i)">
+                {{ action.label }}
+              </button>
+            </div>
+            
+            <!-- Timestamp -->
+            <div class="notification-time text-muted">
+              <small>{{ formatTimestamp(notification.timestamp) }}</small>
+            </div>
+          </div>
+          
+          <!-- Dismiss Button -->
+          <button 
+            class="btn btn-sm btn-link text-muted notification-dismiss" 
+            (click)="dismissNotification(notification)"
+            title="Dismiss">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="dropdown-divider"></div>
+      </div>
+    </div>
+
+    <!-- No Notifications -->
+    <ng-template #noNotifications>
+      <div class="text-center py-3">
+        <i class="fas fa-bell-slash mb-2" style="font-size: 2rem; color: rgba(255, 255, 255, 0.5);"></i>
+        <p class="mb-0" style="color: rgba(255, 255, 255, 0.7);">No notifications</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Backdrop to close dropdown when clicking outside -->
+  <div 
+    *ngIf="isDropdownOpen" 
+    class="notification-backdrop"
+    (click)="closeDropdown()">
+  </div>
+</div>

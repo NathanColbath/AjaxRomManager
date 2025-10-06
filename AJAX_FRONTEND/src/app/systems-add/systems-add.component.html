@@ -1,1 +1,152 @@
-<p>systems-add works!</p>
+<div class="container-fluid mt-4 px-4">
+  <div class="row">
+    <div class="col-12">
+      <h2 class="mb-4">
+        <i class="fas fa-plus me-2"></i>
+        Add New Platform
+      </h2>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-desktop me-2"></i>
+            Platform Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <form (ngModelChange)="onFormChange()" ngModel>
+            <!-- Platform Name -->
+            <div class="mb-3">
+              <label for="platformName" class="form-label">Platform Name *</label>
+              <input type="text" class="form-control" id="platformName" 
+                     [(ngModel)]="platform.name" name="platformName"
+                     placeholder="e.g., Nintendo Entertainment System" required>
+              <div class="form-text">Enter the official name of the gaming platform</div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+              <label for="platformDescription" class="form-label">Description</label>
+              <textarea class="form-control" id="platformDescription" 
+                        [(ngModel)]="platform.description" name="platformDescription"
+                        rows="3" placeholder="Brief description of the platform..."></textarea>
+              <div class="form-text">Optional description of the platform</div>
+            </div>
+
+            <!-- Logo Upload -->
+            <div class="mb-3">
+              <label for="platformLogo" class="form-label">Platform Logo</label>
+              <div class="input-group">
+                <input type="file" class="form-control" id="platformLogo" 
+                       accept="image/*" (change)="onLogoSelected($event)">
+                <button class="btn btn-outline-secondary" type="button" 
+                        (click)="clearLogo()">
+                  <i class="fas fa-times"></i> Clear
+                </button>
+              </div>
+              <div class="form-text">Optional logo image for the platform (PNG, JPG, SVG)</div>
+            </div>
+
+
+            <!-- Supported Extensions -->
+            <div class="mb-3">
+              <label for="supportedExtensions" class="form-label">Supported File Extensions *</label>
+              <div class="extensions-container">
+                <div class="input-group mb-2" *ngFor="let extension of extensionsArray; let i = index; trackBy: trackByExtension">
+                  <span class="input-group-text">.</span>
+                  <input type="text" class="form-control" 
+                         [(ngModel)]="extensionsArray[i]" name="extension{{i}}"
+                         placeholder="nes" required>
+                  <button class="btn btn-outline-danger" type="button" 
+                          (click)="removeExtension(i)" 
+                          [disabled]="extensionsArray.length <= 1">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" 
+                        (click)="addExtension()">
+                  <i class="fas fa-plus me-1"></i>
+                  Add Extension
+                </button>
+              </div>
+              <div class="form-text">File extensions supported by this platform (without the dot)</div>
+            </div>
+
+
+            <!-- Platform Status -->
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="isActive" 
+                       [(ngModel)]="platform.isActive" name="isActive">
+                <label class="form-check-label" for="isActive">
+                  Platform is Active
+                </label>
+              </div>
+              <div class="form-text">Inactive platforms won't appear in scan operations</div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Panel -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-eye me-2"></i>
+            Preview
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="platform-preview">
+            <div class="platform-icon mb-3">
+              <img *ngIf="logoPreview" [src]="logoPreview" alt="Platform Logo" 
+                   class="img-fluid rounded" style="max-height: 80px;">
+              <div *ngIf="!logoPreview" class="platform-placeholder">
+                <i class="fas fa-desktop fa-3x text-muted"></i>
+              </div>
+            </div>
+            <h6 class="platform-name">{{ platform.name || 'Platform Name' }}</h6>
+            <p class="platform-description text-muted small">
+              {{ platform.description || 'No description provided' }}
+            </p>
+            <div class="platform-extensions">
+              <span class="badge bg-secondary me-1" 
+                    *ngFor="let ext of platform.extensions">
+                .{{ ext }}
+              </span>
+            </div>
+            <div class="platform-status mt-2">
+              <span class="badge" 
+                    [class]="platform.isActive ? 'bg-success' : 'bg-secondary'">
+                {{ platform.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary" (click)="resetForm()">
+          <i class="fas fa-undo me-1"></i>
+          Reset
+        </button>
+        <button type="button" class="btn btn-primary" (click)="savePlatform()" 
+                [disabled]="!isFormValid">
+          <i class="fas fa-save me-1"></i>
+          Save Platform
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

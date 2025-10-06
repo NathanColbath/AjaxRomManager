@@ -1,1 +1,387 @@
-<p>settings works!</p>
+<div class="container-fluid mt-4 px-4">
+  <div class="row">
+    <div class="col-12">
+      <h2 class="mb-4">
+        <i class="fas fa-cog me-2"></i>
+        Settings
+      </h2>
+    </div>
+  </div>
+
+  <!-- System Settings Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-server me-2"></i>
+            System Settings
+          </h5>
+        </div>
+        <div class="card-body">
+          <div *ngIf="isLoading" class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+            <p class="mt-2 text-muted">Loading settings...</p>
+          </div>
+          <div *ngIf="!isLoading">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="defaultDirectory" class="form-label">Default ROM Directory</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="defaultDirectory" 
+                         [(ngModel)]="scanConfiguration.defaultDirectory" placeholder="Default ROM storage location">
+                  <button class="btn btn-outline-secondary" type="button" (click)="onFolderSelect('defaultDirectory')">
+                    <i class="fas fa-folder-open"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="maxFileSizeMB" class="form-label">Max File Size (MB)</label>
+                <input type="number" class="form-control" id="maxFileSizeMB" 
+                       [(ngModel)]="scanConfiguration.maxFileSizeMB" placeholder="1024">
+              </div>
+              <div class="mb-3">
+                <label for="hashAlgorithm" class="form-label">Hash Algorithm</label>
+                <select class="form-select" id="hashAlgorithm" [(ngModel)]="scanConfiguration.hashAlgorithm">
+                  <option value="MD5">MD5</option>
+                  <option value="SHA1">SHA1</option>
+                  <option value="SHA256">SHA256</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="progressUpdateIntervalSeconds" class="form-label">Progress Update Interval (seconds)</label>
+                <input type="number" class="form-control" id="progressUpdateIntervalSeconds" 
+                       [(ngModel)]="scanConfiguration.progressUpdateIntervalSeconds" min="1" max="60">
+              </div>
+              <div class="mb-3">
+                <label for="maxConcurrentScans" class="form-label">Max Concurrent Scans</label>
+                <input type="number" class="form-control" id="maxConcurrentScans" 
+                       [(ngModel)]="scanConfiguration.maxConcurrentScans" min="1" max="10">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-12">
+              <div class="mb-3">
+                <label class="form-label">Scan Behavior Options</label>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="recursive" 
+                             [(ngModel)]="scanConfiguration.recursive">
+                      <label class="form-check-label" for="recursive">
+                        Recursive Scanning
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="autoDetectPlatform" 
+                             [(ngModel)]="scanConfiguration.autoDetectPlatform">
+                      <label class="form-check-label" for="autoDetectPlatform">
+                        Auto-detect Platform
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="createMetadata" 
+                             [(ngModel)]="scanConfiguration.createMetadata">
+                      <label class="form-check-label" for="createMetadata">
+                        Create Metadata
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="skipDuplicates" 
+                             [(ngModel)]="scanConfiguration.skipDuplicates">
+                      <label class="form-check-label" for="skipDuplicates">
+                        Skip Duplicates
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="includeSubdirectories" 
+                             [(ngModel)]="scanConfiguration.includeSubdirectories">
+                      <label class="form-check-label" for="includeSubdirectories">
+                        Include Subdirectories
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="enableBackgroundScanning" 
+                             [(ngModel)]="scanConfiguration.enableBackgroundScanning">
+                      <label class="form-check-label" for="enableBackgroundScanning">
+                        Enable Background Scanning
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- User Preferences Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-user me-2"></i>
+            User Preferences
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="theme" class="form-label">Theme</label>
+                <select class="form-select" id="theme" [(ngModel)]="userPreferences.theme">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="auto">Auto</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="itemsPerPage" class="form-label">Items Per Page</label>
+                <select class="form-select" id="itemsPerPage" [(ngModel)]="userPreferences.itemsPerPage">
+                  <option value="12">12</option>
+                  <option value="24">24</option>
+                  <option value="48">48</option>
+                  <option value="96">96</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="defaultView" class="form-label">Default View</label>
+                <select class="form-select" id="defaultView" [(ngModel)]="userPreferences.defaultView">
+                  <option value="grid">Grid View</option>
+                  <option value="list">List View</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Notifications</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="emailNotifications" 
+                         [(ngModel)]="userPreferences.emailNotifications">
+                  <label class="form-check-label" for="emailNotifications">
+                    Email Notifications
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="scanAlerts" 
+                         [(ngModel)]="userPreferences.scanAlerts">
+                  <label class="form-check-label" for="scanAlerts">
+                    Scan Completion Alerts
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Metadata Scan Settings Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>
+            Metadata Scan Settings
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="metadataScanInterval" class="form-label">Metadata Scan Interval</label>
+                <select class="form-select" id="metadataScanInterval" [(ngModel)]="metadataScanSettings.scanInterval">
+                  <option value="manual">Manual Only</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="concurrentMetadataScans" class="form-label">Concurrent Metadata Scans</label>
+                <input type="number" class="form-control" id="concurrentMetadataScans" 
+                       [(ngModel)]="metadataScanSettings.concurrentScans" min="1" max="5">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Metadata Sources</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="fetchFromOnline" 
+                         [(ngModel)]="metadataScanSettings.fetchFromOnline">
+                  <label class="form-check-label" for="fetchFromOnline">
+                    Fetch from Online Sources
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="updateExistingMetadata" 
+                         [(ngModel)]="metadataScanSettings.updateExistingMetadata">
+                  <label class="form-check-label" for="updateExistingMetadata">
+                    Update Existing Metadata
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="downloadImages" 
+                         [(ngModel)]="metadataScanSettings.downloadImages">
+                  <label class="form-check-label" for="downloadImages">
+                    Download Cover Images
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup & Maintenance Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-database me-2"></i>
+            Backup & Maintenance
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="backupSchedule" class="form-label">Backup Schedule</label>
+                <select class="form-select" id="backupSchedule" [(ngModel)]="backupSettings.backupSchedule">
+                  <option value="disabled">Disabled</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="backupRetention" class="form-label">Backup Retention (days)</label>
+                <input type="number" class="form-control" id="backupRetention" 
+                       [(ngModel)]="backupSettings.backupRetention" min="1" max="365">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Maintenance Tasks</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="cleanupOrphans" 
+                         [(ngModel)]="backupSettings.cleanupOrphans">
+                  <label class="form-check-label" for="cleanupOrphans">
+                    Cleanup Orphaned Files
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="optimizeDatabase" 
+                         [(ngModel)]="backupSettings.optimizeDatabase">
+                  <label class="form-check-label" for="optimizeDatabase">
+                    Optimize Database
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary" 
+                (click)="resetToDefaults()" 
+                [disabled]="isLoading || isSaving">
+          <i class="fas fa-undo me-1"></i>
+          Reset to Defaults
+        </button>
+        <button type="button" class="btn btn-primary" 
+                (click)="saveSettings()" 
+                [disabled]="isLoading || isSaving">
+          <i *ngIf="!isSaving" class="fas fa-save me-1"></i>
+          <i *ngIf="isSaving" class="fas fa-spinner fa-spin me-1"></i>
+          {{ isSaving ? 'Saving...' : 'Save Settings' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Operations Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Reset Operations
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning">
+            <i class="fas fa-warning me-2"></i>
+            <strong>Warning:</strong> These operations are irreversible and will permanently delete data.
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <h6 class="text-danger">
+                  <i class="fas fa-database me-2"></i>
+                  Reset Database
+                </h6>
+                <p class="text-muted small">
+                  Clears all database information including platforms, ROMs, settings, and user data.
+                </p>
+                <button type="button" 
+                        class="btn btn-outline-danger"
+                        (click)="resetDatabase()"
+                        [disabled]="isResettingDatabase">
+                  <i class="fas fa-spinner fa-spin me-2" *ngIf="isResettingDatabase"></i>
+                  <i class="fas fa-database me-2" *ngIf="!isResettingDatabase"></i>
+                  Reset Database
+                </button>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="mb-3">
+                <h6 class="text-danger">
+                  <i class="fas fa-trash me-2"></i>
+                  Delete Local Data
+                </h6>
+                <p class="text-muted small">
+                  Deletes all ROM files and images from the local file system.
+                </p>
+                <button type="button" 
+                        class="btn btn-outline-danger"
+                        (click)="deleteLocalData()"
+                        [disabled]="isDeletingLocalData">
+                  <i class="fas fa-spinner fa-spin me-2" *ngIf="isDeletingLocalData"></i>
+                  <i class="fas fa-trash me-2" *ngIf="!isDeletingLocalData"></i>
+                  Delete Local Data
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

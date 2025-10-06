@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajax Rom Manager - Database Schema Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .schema-overview {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border-left: 5px solid #3498db;
+        }
+
+        .schema-overview h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .entity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .entity-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .entity-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .entity-header {
+            padding: 20px;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .entity-header.users { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .entity-header.roms { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .entity-header.platforms { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .entity-header.metadata { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .entity-header.logs { background: linear-gradient(135deg, #1abc9c, #16a085); }
+        .entity-header.scans { background: linear-gradient(135deg, #34495e, #2c3e50); }
+        .entity-header.settings { background: linear-gradient(135deg, #e67e22, #d35400); }
+        .entity-header.collections { background: linear-gradient(135deg, #8e44ad, #9b59b6); }
+        .entity-header.tags { background: linear-gradient(135deg, #16a085, #1abc9c); }
+        .entity-header.reviews { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .entity-header.analytics { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .entity-header.notifications { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .entity-header.security { background: linear-gradient(135deg, #2c3e50, #34495e); }
+        .entity-header.files { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .entity-header.achievements { background: linear-gradient(135deg, #f1c40f, #f39c12); }
+        .entity-header.jobs { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+
+        .entity-body {
+            padding: 20px;
+        }
+
+        .field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .field:last-child {
+            border-bottom: none;
+        }
+
+        .field-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .field-type {
+            background: #ecf0f1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #7f8c8d;
+        }
+
+        .field-type.pk { background: #e74c3c; color: white; }
+        .field-type.fk { background: #3498db; color: white; }
+        .field-type.required { background: #f39c12; color: white; }
+
+        .relationships {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border-left: 5px solid #27ae60;
+        }
+
+        .relationships h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .relationship-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .relationship-type {
+            font-weight: bold;
+            color: #27ae60;
+            margin-right: 10px;
+        }
+
+        .features {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            border-left: 5px solid #9b59b6;
+        }
+
+        .features h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-item {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .feature-item h3 {
+            color: #9b59b6;
+            margin-bottom: 10px;
+        }
+
+        .notes {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .notes h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .notes ul {
+            margin-left: 20px;
+        }
+
+        .notes li {
+            margin: 5px 0;
+            color: #856404;
+        }
+
+        .potential-tables {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border-left: 5px solid #8e44ad;
+        }
+
+        .potential-tables h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .potential-tables p {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .potential-features {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-top: 30px;
+            border-left: 4px solid #8e44ad;
+        }
+
+        .potential-features h3 {
+            color: #8e44ad;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Ajax Rom Manager</h1>
+            <p>Comprehensive Database Schema Design</p>
+        </div>
+
+        <div class="content">
+            <div class="schema-overview">
+                <h2>📊 Schema Overview</h2>
+                <p>This database design supports a complete ROM management system with user authentication, metadata tracking, background scanning, system logging, and configuration management. The schema is designed for scalability, performance, and maintainability.</p>
+            </div>
+
+            <div class="entity-grid">
+                <!-- Users Entity -->
+                <div class="entity-card">
+                    <div class="entity-header users">👤 Users</div>
+                    <div class="entity-body">
+                        <div class="field">
+                            <span class="field-name">Id</span>
+                            <span class="field-type pk">PK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Username</span>
+                            <span class="field-type required">string(50)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Email</span>
+                            <span class="field-type required">string(100)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">PasswordHash</span>
+                            <span class="field-type required">string(255)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">FirstName</span>
+                            <span class="field-type">string(50)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">LastName</span>
+                            <span class="field-type">string(50)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">CreatedAt</span>
+                            <span class="field-type">datetime</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">LastLoginAt</span>
+                            <span class="field-type">datetime?</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">IsActive</span>
+                            <span class="field-type">bool</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">IsEmailVerified</span>
+                            <span class="field-type">bool</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Role</span>
+                            <span class="field-type">string(50)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platforms Entity -->
+                <div class="entity-card">
+                    <div class="entity-header platforms">🎯 Platforms</div>
+                    <div class="entity-body">
+                        <div class="field">
+                            <span class="field-name">Id</span>
+                            <span class="field-type pk">PK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Name</span>
+                            <span class="field-type required">string(100)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Extension</span>
+                            <span class="field-type">string(10)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">EmulatorPath</span>
+                            <span class="field-type">string(500)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">EmulatorArguments</span>
+                            <span class="field-type">string(500)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">IconPath</span>
+                            <span class="field-type">string(500)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">IsActive</span>
+                            <span class="field-type">bool</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">CreatedAt</span>
+                            <span class="field-type">datetime</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ROMs Entity -->
+                <div class="entity-card">
+                    <div class="entity-header roms">💾 ROMs</div>
+                    <div class="entity-body">
+                        <div class="field">
+                            <span class="field-name">Id</span>
+                            <span class="field-type pk">PK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Title</span>
+                            <span class="field-type required">string(200)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">FilePath</span>
+                            <span class="field-type required">string(500)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">FileName</span>
+                            <span class="field-type">string(255)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">FileSize</span>
+                            <span class="field-type">long</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">FileHash</span>
+                            <span class="field-type">string(64)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">PlatformId</span>
+                            <span class="field-type fk">FK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">DateAdded</span>
+                            <span class="field-type">datetime</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">LastPlayed</span>
+                            <span class="field-type">datetime?</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">PlayCount</span>
+                            <span class="field-type">int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">IsFavorite</span>
+                            <span class="field-type">bool</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">IsArchived</span>
+                            <span class="field-type">bool</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ROM Metadata Entity -->
+                <div class="entity-card">
+                    <div class="entity-header metadata">📋 ROM Metadata</div>
+                    <div class="entity-body">
+                        <div class="field">
+                            <span class="field-name">Id</span>
+                            <span class="field-type pk">PK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">RomId</span>
+                            <span class="field-type fk">FK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Description</span>
+                            <span class="field-type">text</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Genre</span>
+                            <span class="field-type">string(100)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Developer</span>
+                            <span class="field-type">string(100)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Publisher</span>
+                            <span class="field-type">string(100)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">ReleaseDate</span>
+                            <span class="field-type">datetime?</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Rating</span>
+                            <span class="field-type">decimal(3,2)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">CoverImagePath</span>
+                            <span class="field-type">string(500)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">ScreenshotPaths</span>
+                            <span class="field-type">json</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Tags</span>
+                            <span class="field-type">json</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">LastUpdated</span>
+                            <span class="field-type">datetime</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Logs Entity -->
+                <div class="entity-card">
+                    <div class="entity-header logs">📝 System Logs</div>
+                    <div class="entity-body">
+                        <div class="field">
+                            <span class="field-name">Id</span>
+                            <span class="field-type pk">PK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">UserId</span>
+                            <span class="field-type fk">FK, int?</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Level</span>
+                            <span class="field-type required">string(20)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Category</span>
+                            <span class="field-type">string(50)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Message</span>
+                            <span class="field-type required">text</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Exception</span>
+                            <span class="field-type">text</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Properties</span>
+                            <span class="field-type">json</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Timestamp</span>
+                            <span class="field-type">datetime</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Source</span>
+                            <span class="field-type">string(100)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scan Jobs Entity -->
+                <div class="entity-card">
+                    <div class="entity-header scans">🔍 Scan Jobs</div>
+                    <div class="entity-body">
+                        <div class="field">
+                            <span class="field-name">Id</span>
+                            <span class="field-type pk">PK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Name</span>
+                            <span class="field-type required">string(100)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">ScanPath</span>
+                            <span class="field-type required">string(500)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">PlatformId</span>
+                            <span class="field-type fk">FK, int?</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Status</span>
+                            <span class="field-type required">string(20)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Progress</span>
+                            <span class="field-type">decimal(5,2)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">FilesFound</span>
+                            <span class="field-type">int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">FilesProcessed</span>
+                            <span class="field-type">int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Errors</span>
+                            <span class="field-type">int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">StartedAt</span>
+                            <span class="field-type">datetime?</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">CompletedAt</span>
+                            <span class="field-type">datetime?</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">LastRunAt</span>
+                            <span class="field-type">datetime?</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">IsRecurring</span>
+                            <span class="field-type">bool</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">CronExpression</span>
+                            <span class="field-type">string(100)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Settings Entity -->
+                <div class="entity-card">
+                    <div class="entity-header settings">⚙️ System Settings</div>
+                    <div class="entity-body">
+                        <div class="field">
+                            <span class="field-name">Id</span>
+                            <span class="field-type pk">PK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Key</span>
+                            <span class="field-type required">string(100)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Value</span>
+                            <span class="field-type">text</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Description</span>
+                            <span class="field-type">string(500)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Category</span>
+                            <span class="field-type">string(50)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">DataType</span>
+                            <span class="field-type">string(20)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">IsEncrypted</span>
+                            <span class="field-type">bool</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">IsReadOnly</span>
+                            <span class="field-type">bool</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">LastModified</span>
+                            <span class="field-type">datetime</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">ModifiedBy</span>
+                            <span class="field-type">string(100)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Preferences Entity -->
+                <div class="entity-card">
+                    <div class="entity-header users">🎨 User Preferences</div>
+                    <div class="entity-body">
+                        <div class="field">
+                            <span class="field-name">Id</span>
+                            <span class="field-type pk">PK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">UserId</span>
+                            <span class="field-type fk">FK, int</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Key</span>
+                            <span class="field-type required">string(100)</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">Value</span>
+                            <span class="field-type">text</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">CreatedAt</span>
+                            <span class="field-type">datetime</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-name">UpdatedAt</span>
+                            <span class="field-type">datetime</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relationships">
+                <h2>🔗 Entity Relationships</h2>
+                
+                <div class="relationship-item">
+                    <span class="relationship-type">One-to-Many:</span>
+                    <strong>Platform</strong> → <strong>ROMs</strong> (One platform can have many ROMs)
+                </div>
+                
+                <div class="relationship-item">
+                    <span class="relationship-type">One-to-One:</span>
+                    <strong>ROM</strong> → <strong>ROM Metadata</strong> (Each ROM has one metadata record)
+                </div>
+                
+                <div class="relationship-item">
+                    <span class="relationship-type">One-to-Many:</span>
+                    <strong>User</strong> → <strong>User Preferences</strong> (One user can have many preferences)
+                </div>
+                
+                <div class="relationship-item">
+                    <span class="relationship-type">One-to-Many:</span>
+                    <strong>User</strong> → <strong>System Logs</strong> (One user can generate many logs)
+                </div>
+                
+                <div class="relationship-item">
+                    <span class="relationship-type">One-to-Many:</span>
+                    <strong>Platform</strong> → <strong>Scan Jobs</strong> (One platform can have many scan jobs)
+                </div>
+                
+                <div class="relationship-item">
+                    <span class="relationship-type">Many-to-Many:</span>
+                    <strong>User</strong> ↔ <strong>ROMs</strong> (Users can favorite multiple ROMs, ROMs can be favorited by multiple users)
+                </div>
+            </div>
+
+            <div class="features">
+                <h2>✨ Key Features Supported</h2>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <h3>🔐 User Management</h3>
+                        <p>Complete user authentication system with roles, preferences, and activity tracking. Supports email verification and user profiles.</p>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h3>🎮 ROM Management</h3>
+                        <p>Comprehensive ROM tracking with file information, play statistics, favorites, and archiving capabilities.</p>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h3>📊 Rich Metadata</h3>
+                        <p>Extended ROM information including descriptions, genres, developers, ratings, images, and custom tags.</p>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h3>🔍 Background Scanning</h3>
+                        <p>Automated ROM discovery with progress tracking, error handling, and recurring scan scheduling.</p>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h3>📝 Comprehensive Logging</h3>
+                        <p>System-wide logging with different levels, categories, and structured data for debugging and monitoring.</p>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h3>⚙️ Flexible Configuration</h3>
+                        <p>System-wide settings management with encryption support, data type validation, and audit trails.</p>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h3>🎯 Platform Management</h3>
+                        <p>Support for multiple gaming platforms with emulator configuration and file extension handling.</p>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h3>🎨 User Customization</h3>
+                        <p>Per-user preferences for UI customization, display options, and personal settings.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Potential Additional Tables Section -->
+            <div class="potential-tables">
+                <h2>🚀 Potential Additional Tables</h2>
+                <p>These tables could be added in future iterations to enhance functionality and user experience:</p>
+                
+                <div class="entity-grid">
+                    <!-- Collections/Playlists -->
+                    <div class="entity-card">
+                        <div class="entity-header collections">📚 Collections</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">Id</span>
+                                <span class="field-type pk">PK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Name</span>
+                                <span class="field-type required">string(100)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Description</span>
+                                <span class="field-type">text</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">UserId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">IsPublic</span>
+                                <span class="field-type">bool</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">CreatedAt</span>
+                                <span class="field-type">datetime</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="entity-card">
+                        <div class="entity-header collections">🎵 Playlists</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">Id</span>
+                                <span class="field-type pk">PK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Name</span>
+                                <span class="field-type required">string(100)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">UserId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Description</span>
+                                <span class="field-type">text</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">SortOrder</span>
+                                <span class="field-type">int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">CreatedAt</span>
+                                <span class="field-type">datetime</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tags System -->
+                    <div class="entity-card">
+                        <div class="entity-header tags">🏷️ Tags</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">Id</span>
+                                <span class="field-type pk">PK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Name</span>
+                                <span class="field-type required">string(50)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Color</span>
+                                <span class="field-type">string(7)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Description</span>
+                                <span class="field-type">string(200)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">UsageCount</span>
+                                <span class="field-type">int</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="entity-card">
+                        <div class="entity-header tags">🔗 RomTags</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">RomId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">TagId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">AddedAt</span>
+                                <span class="field-type">datetime</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reviews & Community -->
+                    <div class="entity-card">
+                        <div class="entity-header reviews">⭐ Reviews</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">Id</span>
+                                <span class="field-type pk">PK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">RomId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">UserId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Rating</span>
+                                <span class="field-type">decimal(3,2)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Title</span>
+                                <span class="field-type">string(200)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Content</span>
+                                <span class="field-type">text</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">IsVerified</span>
+                                <span class="field-type">bool</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">CreatedAt</span>
+                                <span class="field-type">datetime</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics & Statistics -->
+                    <div class="entity-card">
+                        <div class="entity-header analytics">📊 PlaySessions</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">Id</span>
+                                <span class="field-type pk">PK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">RomId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">UserId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">StartedAt</span>
+                                <span class="field-type">datetime</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">EndedAt</span>
+                                <span class="field-type">datetime?</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Duration</span>
+                                <span class="field-type">int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">SaveState</span>
+                                <span class="field-type">text</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="entity-card">
+                        <div class="entity-header notifications">🔔 Notifications</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">Id</span>
+                                <span class="field-type pk">PK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">UserId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Type</span>
+                                <span class="field-type required">string(50)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Title</span>
+                                <span class="field-type required">string(200)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Message</span>
+                                <span class="field-type">text</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">IsRead</span>
+                                <span class="field-type">bool</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">CreatedAt</span>
+                                <span class="field-type">datetime</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security & Audit -->
+                    <div class="entity-card">
+                        <div class="entity-header security">🛡️ UserSessions</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">Id</span>
+                                <span class="field-type pk">PK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">UserId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">SessionToken</span>
+                                <span class="field-type required">string(255)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">IpAddress</span>
+                                <span class="field-type">string(45)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">UserAgent</span>
+                                <span class="field-type">string(500)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">StartedAt</span>
+                                <span class="field-type">datetime</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">LastActivity</span>
+                                <span class="field-type">datetime</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">IsActive</span>
+                                <span class="field-type">bool</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- File Management -->
+                    <div class="entity-card">
+                        <div class="entity-header files">📁 FileBackups</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">Id</span>
+                                <span class="field-type pk">PK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">RomId</span>
+                                <span class="field-type fk">FK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">BackupPath</span>
+                                <span class="field-type required">string(500)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">BackupSize</span>
+                                <span class="field-type">long</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">BackupType</span>
+                                <span class="field-type">string(50)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">CreatedAt</span>
+                                <span class="field-type">datetime</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">IsCompressed</span>
+                                <span class="field-type">bool</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Features -->
+                    <div class="entity-card">
+                        <div class="entity-header achievements">🎯 Achievements</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">Id</span>
+                                <span class="field-type pk">PK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Name</span>
+                                <span class="field-type required">string(100)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Description</span>
+                                <span class="field-type">text</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">IconPath</span>
+                                <span class="field-type">string(500)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Points</span>
+                                <span class="field-type">int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Category</span>
+                                <span class="field-type">string(50)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">IsActive</span>
+                                <span class="field-type">bool</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Management -->
+                    <div class="entity-card">
+                        <div class="entity-header jobs">⚙️ BackgroundJobs</div>
+                        <div class="entity-body">
+                            <div class="field">
+                                <span class="field-name">Id</span>
+                                <span class="field-type pk">PK, int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">JobType</span>
+                                <span class="field-type required">string(100)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">JobData</span>
+                                <span class="field-type">json</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Status</span>
+                                <span class="field-type required">string(20)</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">Priority</span>
+                                <span class="field-type">int</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">ScheduledAt</span>
+                                <span class="field-type">datetime?</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">StartedAt</span>
+                                <span class="field-type">datetime?</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">CompletedAt</span>
+                                <span class="field-type">datetime?</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">ErrorMessage</span>
+                                <span class="field-type">text</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="potential-features">
+                    <h3>🎯 Additional Features These Tables Enable:</h3>
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <h3>📚 Collections & Playlists</h3>
+                            <p>Organize ROMs into custom collections and playlists for better management and discovery.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <h3>🏷️ Flexible Tagging</h3>
+                            <p>Tag ROMs with custom labels for advanced filtering and organization.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <h3>⭐ Community Features</h3>
+                            <p>User reviews, ratings, and community-driven content discovery.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <h3>📊 Advanced Analytics</h3>
+                            <p>Detailed play session tracking and gaming statistics for users.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <h3>🔔 Notification System</h3>
+                            <p>Real-time notifications for system events and user interactions.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <h3>🛡️ Enhanced Security</h3>
+                            <p>Session management, audit trails, and comprehensive security logging.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <h3>📁 File Management</h3>
+                            <p>Backup systems, file integrity checking, and multiple storage support.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <h3>🎯 Gamification</h3>
+                            <p>Achievement systems and progress tracking to enhance user engagement.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <h3>⚙️ Job Management</h3>
+                            <p>Generic background job system for scalable task processing.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="notes">
+                <h3>📝 Implementation Notes</h3>
+                <ul>
+                    <li><strong>Indexes:</strong> Add indexes on frequently queried fields like UserId, PlatformId, RomId, and Timestamp columns for optimal performance.</li>
+                    <li><strong>Soft Deletes:</strong> Consider implementing soft deletes for Users and ROMs to maintain data integrity and allow recovery.</li>
+                    <li><strong>File Integrity:</strong> The FileHash field enables duplicate detection and file integrity verification.</li>
+                    <li><strong>JSON Fields:</strong> ScreenshotPaths and Tags use JSON for flexible storage of arrays and complex data structures.</li>
+                    <li><strong>Audit Trail:</strong> System Settings include modification tracking for compliance and debugging purposes.</li>
+                    <li><strong>Scalability:</strong> Design supports horizontal scaling with proper foreign key relationships and normalized structure.</li>
+                    <li><strong>Security:</strong> Password hashing, encrypted settings, and role-based access control are built into the design.</li>
+                    <li><strong>Future Expansion:</strong> The potential tables section provides a roadmap for advanced features and community functionality.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
